@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
 import { getFieldErrors } from '@/api';
@@ -34,6 +34,7 @@ export function useProjectForm(existing?: Project) {
     existing ? toFormValues(existing) : emptyProjectForm(),
   );
   const [clientErrors, setClientErrors] = useState<ProjectFieldErrors>({});
+  const mixGroupRef = useRef<HTMLDivElement>(null);
 
   const errors: ProjectFieldErrors = {
     ...getFieldErrors(save.error),
@@ -54,6 +55,12 @@ export function useProjectForm(existing?: Project) {
     const found = validateProjectForm(values);
     if (values.mix_id === null) found.mix_id = MIX_REQUIRED_MESSAGE;
     setClientErrors(found);
+    if (found.mix_id) {
+      // On a phone the picker is above the fold: take the User to it.
+      mixGroupRef.current
+        ?.querySelector<HTMLButtonElement>('[role=radio]')
+        ?.focus();
+    }
     if (found.full_quantity || found.half_quantity || found.mix_id) return;
     preview.mutate(toOrder(values));
   }
@@ -82,6 +89,7 @@ export function useProjectForm(existing?: Project) {
   return {
     values,
     errors,
+    mixGroupRef,
     hasErrors: Object.values(errors).some(Boolean),
     setField,
     calculate,

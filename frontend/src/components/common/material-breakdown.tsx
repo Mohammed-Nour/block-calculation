@@ -57,7 +57,7 @@ export function MaterialBreakdown({
             <TableHead scope="col" className="text-right">
               Quantity
             </TableHead>
-            <TableHead scope="col" className="text-right">
+            <TableHead scope="col" className="hidden text-right sm:table-cell">
               Price / ton
             </TableHead>
             <TableHead scope="col" className="text-right">
@@ -76,7 +76,7 @@ export function MaterialBreakdown({
                 <TableCell className="text-right tabular-nums">
                   {formatTons(item.tons)}
                 </TableCell>
-                <TableCell className="text-right tabular-nums">
+                <TableCell className="hidden text-right tabular-nums sm:table-cell">
                   {formatMoney(item.price_per_ton, currency)}
                 </TableCell>
                 <TableCell className="text-right tabular-nums">
@@ -86,9 +86,10 @@ export function MaterialBreakdown({
             );
           })}
           <TableRow className="font-semibold">
-            <TableHead scope="row" colSpan={3} className="text-foreground">
+            <TableHead scope="row" colSpan={2} className="text-foreground">
               Total material cost
             </TableHead>
+            <TableCell aria-hidden="true" className="hidden sm:table-cell" />
             <TableCell className="text-right text-base tabular-nums">
               {formatMoney(calculation.total_cost, currency)}
             </TableCell>

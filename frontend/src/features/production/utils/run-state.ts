@@ -28,3 +28,24 @@ export function earliestReadyAt(run: ProductionRun) {
     Date.parse(run.started_at) + CYCLE_HOURS * MS_PER_HOUR,
   ).toISOString();
 }
+
+/** 1-based position of a run among the runs of its size. */
+export function runNumber(run: ProductionRun, runs: ProductionRun[]) {
+  return (
+    runs.filter((other) => other.block_size === run.block_size).indexOf(run) + 1
+  );
+}
+
+/** "2 of 54 runs ready · 1 in the molds · 51 waiting" */
+export function runSummary(runs: ProductionRun[]) {
+  const count = (state: RunState) =>
+    runs.filter((run) => runState(run) === state).length;
+  const parts = [
+    `${count('ready')} of ${runs.length} runs ready`,
+    `${count('in_molds')} in the molds`,
+    `${count('waiting')} waiting`,
+  ];
+  const cancelled = count('cancelled');
+  if (cancelled > 0) parts.push(`${cancelled} cancelled`);
+  return parts.join(' · ');
+}

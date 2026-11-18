@@ -1,6 +1,8 @@
 import { QueryClient } from '@tanstack/react-query';
 import { createRouter } from '@tanstack/react-router';
 
+import { PagePending } from '@/components/common';
+
 import { routeTree } from './routeTree.gen';
 
 export function getRouter() {
@@ -21,6 +23,8 @@ export function getRouter() {
     scrollRestoration: true,
     defaultPreload: 'intent',
     defaultPreloadStaleTime: 0,
+    defaultPendingComponent: PagePending,
+    defaultPendingMs: 150,
   });
 
   return { router, queryClient };
