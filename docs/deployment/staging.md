@@ -8,7 +8,7 @@ The installation root is `/home/ali/blockcalc-staging`. Each release has its own
 
 The environment selects the image tag, bind address, port, and allowed frontend origins. The staging endpoint is `http://100.78.250.123:18095`, bound to the host's Tailscale interface. Interactive API documentation is at `/docs`. The frontend can connect with `VITE_API_MODE=http` and `VITE_API_BASE_URL=http://100.78.250.123:18095`.
 
-For a new release, export the committed `backend/` files into a new release directory, build `blockcalc-backend:<commit>`, update `BLOCKCALC_IMAGE` in `staging.env`, and point `current` at the release. Run from `current/`.
+For a new release, export the committed `backend/` files into a new release directory, build `blockcalc-backend:<commit>` with `docker build --network host -t blockcalc-backend:<commit> .`, update `BLOCKCALC_IMAGE` in `staging.env`, and point `current` at the release. Run from `current/`.
 
 ```sh
 docker compose up -d --wait
@@ -53,3 +53,9 @@ Restoration validates the backup and upgrades its schema before publishing the r
 ## Rollback
 
 Keep the previous release directory, image tag, and a backup from before migration. Stop the backend, select the previous `BLOCKCALC_IMAGE`, and point `current` to the previous release. If the older application cannot read the migrated schema, restore the pre-migration backup with the matching image while the service is stopped. Start the backend with `docker compose up -d --wait` and verify `/health` and a saved project before returning it to use.
+
+## Verified staging release
+
+On 18 November 2026, release `dc10f27` was deployed to `robotics-infra` and checked through the Tailscale endpoint. The container ran as UID 10001 and reported a healthy schema version 2. A service restart retained the database and settings.
+
+An online backup was restored to an isolated database. Integrity, foreign keys, and every table matched the backup. The daily 03:00 Europe/Moscow backup job is installed. The live OpenAPI matched the committed schema, and browser POST preflight and missing-input validation passed. The staging database starts with unconfigured prices and yields, ready for the planner's measured inputs.

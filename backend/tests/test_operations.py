@@ -2,6 +2,7 @@ import json
 import sqlite3
 import unittest
 from contextlib import closing
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
@@ -36,28 +37,85 @@ class OperationTests(unittest.TestCase):
         )
 
     def test_backup_restore_preserves_complete_records_and_original_prices(self):
-        with transaction(self.source, write=True) as db:
-            db.execute(
-                "UPDATE settings SET cement_price_per_ton = '100.123456789' WHERE id = 1"
-            )
-            db.execute("""
-                INSERT INTO projects (id, name, requested_start_at, full_quantity, half_quantity, mix_id)
-                VALUES (1, 'Restore order', '2026-11-18T09:00:00+03:00', 1, 0, 1)
-            """)
-            db.execute(
-                "INSERT INTO estimate_revisions VALUES (1, 1, ?, ?, '2026-11-18T06:00:00Z')",
-                (json.dumps({"price": "100.123456789"}), json.dumps({"cost": "5.01"})),
-            )
-            db.execute("""
-                INSERT INTO audit_events (project_id, event_type, actor_id, event_key, details_json)
-                VALUES (1, 'test.event', 'local-user', 'once', '{}')
-            """)
+        self.client.put(
+            "/api/settings",
+            json={
+                "version": 1,
+                "currency": "RUB",
+                "full_molds": 10,
+                "half_molds": 0,
+                "sand_price_per_ton": "10",
+                "stone_price_per_ton": "20",
+                "cement_price_per_ton": "100.123456789",
+                "sand_kg_per_wheelbarrow": "100",
+                "stone_kg_per_wheelbarrow": "120",
+                "mix_yields": [
+                    {"id": mix_id, "full_yield": 35, "half_yield": 60}
+                    for mix_id in range(1, 5)
+                ],
+            },
+        ).raise_for_status()
+        start = datetime.now(UTC) - timedelta(hours=72)
+        project = self.client.post(
+            "/api/projects",
+            json={
+                "name": "Restore order",
+                "requested_start_at": start.isoformat(),
+                "full_quantity": 10,
+                "half_quantity": 0,
+                "mix_id": 1,
+            },
+        ).json()
+        base = f"/api/projects/{project['id']}"
+        preview = self.client.post(
+            base + "/calculate", json={"version": project["version"]}
+        ).json()
+        saved = self.client.post(
+            base + "/estimates",
+            json={
+                "version": project["version"],
+                "settings_version": preview["settings_version"],
+            },
+        ).json()
+        plan = self.client.post(
+            base + "/plan", json={"project_version": saved["version"]}
+        ).json()
+        run_id = plan["runs"][0]["id"]
+        self.client.post(
+            base + f"/runs/{run_id}/start",
+            json={
+                "event_key": "start",
+                "started_at": start.isoformat(),
+            },
+        ).raise_for_status()
+        self.client.post(
+            base + f"/runs/{run_id}/ready",
+            json={
+                "event_key": "ready",
+                "ready_at": (start + timedelta(hours=48)).isoformat(),
+                "physically_checked": True,
+            },
+        ).raise_for_status()
+        collection_payload = {
+            "event_key": "collect",
+            "full_quantity": 4,
+            "half_quantity": 0,
+            "collected_at": datetime.now(UTC).isoformat(),
+        }
+        response = self.client.post(base + "/collections", json=collection_payload)
+        response.raise_for_status()
+        original_detail = response.json()
         backup = self.directory / "daily.sqlite3"
         copy_database(self.source, backup)
         with transaction(self.source, write=True) as db:
             db.execute("UPDATE settings SET cement_price_per_ton = '120' WHERE id = 1")
         restored = self.directory / "restored.sqlite3"
         copy_database(backup, restored, upgrade=True)
+        with TestClient(create_app(restored)) as client:
+            self.assertEqual(client.get(base + "/production").json(), original_detail)
+            replay = client.post(base + "/collections", json=collection_payload)
+            self.assertEqual(replay.status_code, 200)
+            self.assertEqual(replay.json(), original_detail)
         with transaction(restored) as db, transaction(backup) as snapshot:
             self.assertEqual(db.execute("PRAGMA integrity_check").fetchone()[0], "ok")
             self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])

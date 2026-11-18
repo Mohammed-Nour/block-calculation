@@ -52,7 +52,7 @@ The first estimate uses current settings. Revisions reuse saved settings until b
 
 Event keys are scoped to a project. Retrying the same event returns the current state; changing an already used key's payload returns 409. Readiness needs 48 actual elapsed hours and a physical check. Event timestamps retain their offset and cannot be in the future.
 
-Forecasts assume each project's molds are available independently. After planning, capacities come from the saved plan. Positive demand with zero matching molds has no completion time. A delay shifts the following matching runs in that project. The clock never automatically marks blocks ready.
+Forecasts assume each project's molds are available independently. After planning, capacities come from the saved plan. Positive demand with zero matching molds has no completion time. Orders whose completion falls outside the supported calendar remain readable with an unavailable forecast; planning returns a validation error. A delay shifts the following matching runs in that project. The clock never automatically marks blocks ready.
 
 Collection is bounded by ready minus collected quantities for each size, including partial collections. Cancellation keeps active runs, cancels waiting work, preserves history, and allows collection from ready blocks. The cancelled status is retained.
 
