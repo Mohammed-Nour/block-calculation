@@ -1,12 +1,17 @@
 import { isAxiosError } from 'axios';
 
+import { isApiError } from '@/api/errors';
+
 /**
- * Best-effort extraction of a human-readable message from an unknown error.
+ * Best-effort extraction (API errors first) of a human-readable message from an unknown error.
  * On Axios errors it prefers the server body: the backend's `ApiError` shape
  * (`{ detail, code, suggestion }`), then FastAPI's object detail
  * (`HTTPException(detail={ message, … })`), then a generic `{ message }`.
  */
 export function getErrorMessage(error: unknown, fallback: string): string {
+  if (isApiError(error)) {
+    return error.message;
+  }
   if (isAxiosError(error)) {
     const data: unknown = error.response?.data;
     if (data && typeof data === 'object') {
