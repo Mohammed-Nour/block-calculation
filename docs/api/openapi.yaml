@@ -1,0 +1,2575 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BlockCalc API",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/settings": {
+      "get": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Read material and production settings",
+        "operationId": "get_settings_api_settings_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsRead"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Settings"
+        ],
+        "summary": "Replace material and production settings",
+        "operationId": "update_settings_api_settings_put",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SettingsUpdate"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SettingsRead"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Settings have changed since the submitted version"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/calculations": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Preview Materials",
+        "operationId": "preview_materials_api_calculations_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MaterialOrder"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MaterialCalculation"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/summaries": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Project Summaries",
+        "operationId": "project_summaries_api_projects_summaries_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "planned",
+                    "in_production",
+                    "partially_ready",
+                    "ready",
+                    "collected",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectSummary"
+                  },
+                  "title": "Response Project Summaries Api Projects Summaries Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/production": {
+      "get": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Get Production",
+        "operationId": "get_production_api_projects__project_id__production_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/plan": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Plan Production",
+        "operationId": "plan_production_api_projects__project_id__plan_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PlanProduction"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/runs/{run_id}/start": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Start Run",
+        "operationId": "start_run_api_projects__project_id__runs__run_id__start_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunStart"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/runs/{run_id}/ready": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Ready Run",
+        "operationId": "ready_run_api_projects__project_id__runs__run_id__ready_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "run_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Run Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RunReady"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/collections": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Record Collection",
+        "operationId": "record_collection_api_projects__project_id__collections_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CollectionInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/cancel": {
+      "post": {
+        "tags": [
+          "Production"
+        ],
+        "summary": "Cancel Project",
+        "operationId": "cancel_project_api_projects__project_id__cancel_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelProject"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create a project draft",
+        "operationId": "create_project_api_projects_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectDraft"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List projects",
+        "operationId": "list_projects_api_projects_get",
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "draft",
+                    "planned",
+                    "in_production",
+                    "partially_ready",
+                    "ready",
+                    "collected",
+                    "cancelled"
+                  ],
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProjectRead"
+                  },
+                  "title": "Response List Projects Api Projects Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Read a project and its current estimate",
+        "operationId": "get_project_api_projects__project_id__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Replace project draft fields",
+        "operationId": "update_project_api_projects__project_id__put",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProjectUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/calculate": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Preview material costs without saving a revision",
+        "operationId": "preview_estimate_api_projects__project_id__calculate_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CalculationRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimatePreview"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/estimates": {
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Save an estimate revision",
+        "operationId": "save_estimate_api_projects__project_id__estimates_post",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EstimateSave"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProjectRead"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Read saved estimate revision history",
+        "operationId": "list_estimates_api_projects__project_id__estimates_get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EstimateRevision"
+                  },
+                  "title": "Response List Estimates Api Projects  Project Id  Estimates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/projects/{project_id}/estimates/{revision}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Read an original saved estimate revision",
+        "operationId": "get_estimate_api_projects__project_id__estimates__revision__get",
+        "parameters": [
+          {
+            "name": "project_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Project Id"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "maximum": 9223372036854775807,
+              "exclusiveMinimum": 0,
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EstimateRevision"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "summary": "Health",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CalculationRequest": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          },
+          "use_current_prices": {
+            "type": "boolean",
+            "title": "Use Current Prices",
+            "default": false
+          },
+          "confirm_recalculation": {
+            "type": "boolean",
+            "title": "Confirm Recalculation",
+            "default": false
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version"
+        ],
+        "title": "CalculationRequest"
+      },
+      "CancelProject": {
+        "properties": {
+          "project_version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Project Version"
+          },
+          "reason": {
+            "type": "string",
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Reason"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_version",
+          "reason"
+        ],
+        "title": "CancelProject"
+      },
+      "Collection": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "full_quantity": {
+            "type": "integer",
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "title": "Half Quantity"
+          },
+          "collected_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Collected At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "full_quantity",
+          "half_quantity",
+          "collected_at"
+        ],
+        "title": "Collection"
+      },
+      "CollectionInput": {
+        "properties": {
+          "event_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Event Key"
+          },
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "collected_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Collected At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_key",
+          "full_quantity",
+          "half_quantity",
+          "collected_at"
+        ],
+        "title": "CollectionInput"
+      },
+      "EstimateInputs": {
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectDraft"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SettingsRead"
+          },
+          "kilograms_per_ton": {
+            "type": "string",
+            "title": "Kilograms Per Ton",
+            "default": "1000"
+          },
+          "cement_bag_kilograms": {
+            "type": "string",
+            "title": "Cement Bag Kilograms",
+            "default": "50"
+          },
+          "cost_rounding": {
+            "type": "string",
+            "const": "ROUND_HALF_UP",
+            "title": "Cost Rounding",
+            "default": "ROUND_HALF_UP"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project",
+          "settings"
+        ],
+        "title": "EstimateInputs"
+      },
+      "EstimatePreview": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "settings_version": {
+            "type": "integer",
+            "title": "Settings Version"
+          },
+          "price_source": {
+            "type": "string",
+            "enum": [
+              "saved",
+              "current"
+            ],
+            "title": "Price Source"
+          },
+          "inputs": {
+            "$ref": "#/components/schemas/EstimateInputs"
+          },
+          "result": {
+            "$ref": "#/components/schemas/MaterialCalculation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "settings_version",
+          "price_source",
+          "inputs",
+          "result"
+        ],
+        "title": "EstimatePreview"
+      },
+      "EstimateRevision": {
+        "properties": {
+          "project_id": {
+            "type": "integer",
+            "title": "Project Id"
+          },
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "inputs": {
+            "$ref": "#/components/schemas/EstimateInputs"
+          },
+          "result": {
+            "$ref": "#/components/schemas/MaterialCalculation"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project_id",
+          "revision",
+          "inputs",
+          "result",
+          "created_at"
+        ],
+        "title": "EstimateRevision"
+      },
+      "EstimateSave": {
+        "properties": {
+          "version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          },
+          "use_current_prices": {
+            "type": "boolean",
+            "title": "Use Current Prices",
+            "default": false
+          },
+          "confirm_recalculation": {
+            "type": "boolean",
+            "title": "Confirm Recalculation",
+            "default": false
+          },
+          "settings_version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Settings Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "version",
+          "settings_version"
+        ],
+        "title": "EstimateSave"
+      },
+      "EstimateView": {
+        "properties": {
+          "revision": {
+            "type": "integer",
+            "title": "Revision"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          },
+          "results": {
+            "$ref": "#/components/schemas/MaterialCalculation"
+          }
+        },
+        "type": "object",
+        "required": [
+          "revision",
+          "created_at",
+          "inputs",
+          "results"
+        ],
+        "title": "EstimateView"
+      },
+      "Forecast": {
+        "properties": {
+          "full": {
+            "$ref": "#/components/schemas/SizeForecast"
+          },
+          "half": {
+            "$ref": "#/components/schemas/SizeForecast"
+          },
+          "duration_hours": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duration Hours"
+          },
+          "expected_ready_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Ready At"
+          },
+          "untimed_sizes": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "full",
+                "half"
+              ]
+            },
+            "type": "array",
+            "title": "Untimed Sizes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "full",
+          "half",
+          "duration_hours",
+          "expected_ready_at",
+          "untimed_sizes"
+        ],
+        "title": "Forecast"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HistoryEvent": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "event_type": {
+            "type": "string",
+            "title": "Event Type"
+          },
+          "actor_id": {
+            "type": "string",
+            "title": "Actor Id"
+          },
+          "occurred_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Occurred At"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_type",
+          "actor_id",
+          "occurred_at",
+          "summary"
+        ],
+        "title": "HistoryEvent"
+      },
+      "MaterialCalculation": {
+        "properties": {
+          "mix_id": {
+            "type": "integer",
+            "title": "Mix Id"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "full_batches": {
+            "type": "integer",
+            "title": "Full Batches"
+          },
+          "half_batches": {
+            "type": "integer",
+            "title": "Half Batches"
+          },
+          "total_batches": {
+            "type": "integer",
+            "title": "Total Batches"
+          },
+          "full_surplus": {
+            "type": "integer",
+            "title": "Full Surplus"
+          },
+          "half_surplus": {
+            "type": "integer",
+            "title": "Half Surplus"
+          },
+          "sand": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "stone": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "cement": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "total_cost": {
+            "type": "string",
+            "title": "Total Cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mix_id",
+          "currency",
+          "full_batches",
+          "half_batches",
+          "total_batches",
+          "full_surplus",
+          "half_surplus",
+          "sand",
+          "stone",
+          "cement",
+          "total_cost"
+        ],
+        "title": "MaterialCalculation"
+      },
+      "MaterialCost": {
+        "properties": {
+          "tons": {
+            "type": "string",
+            "title": "Tons"
+          },
+          "price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Price Per Ton"
+          },
+          "cost": {
+            "type": "string",
+            "title": "Cost"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tons",
+          "price_per_ton",
+          "cost"
+        ],
+        "title": "MaterialCost"
+      },
+      "MaterialOrder": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity"
+        ],
+        "title": "MaterialOrder"
+      },
+      "Mix": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Id"
+          },
+          "full_yield": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Yield"
+          },
+          "half_yield": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Half Yield"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "sand_wheelbarrows": {
+            "type": "string",
+            "title": "Sand Wheelbarrows"
+          },
+          "stone_wheelbarrows": {
+            "type": "string",
+            "title": "Stone Wheelbarrows"
+          },
+          "cement_bags": {
+            "type": "string",
+            "title": "Cement Bags"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "full_yield",
+          "half_yield",
+          "name",
+          "sand_wheelbarrows",
+          "stone_wheelbarrows",
+          "cement_bags"
+        ],
+        "title": "Mix"
+      },
+      "MixYield": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "maximum": 4.0,
+            "minimum": 1.0,
+            "title": "Id"
+          },
+          "full_yield": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Full Yield"
+          },
+          "half_yield": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Half Yield"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "full_yield",
+          "half_yield"
+        ],
+        "title": "MixYield"
+      },
+      "PlanProduction": {
+        "properties": {
+          "project_version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Project Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "project_version"
+        ],
+        "title": "PlanProduction"
+      },
+      "ProductionRun": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "estimate_revision": {
+            "type": "integer",
+            "title": "Estimate Revision"
+          },
+          "block_size": {
+            "type": "string",
+            "enum": [
+              "full",
+              "half"
+            ],
+            "title": "Block Size"
+          },
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "mold_capacity": {
+            "type": "integer",
+            "title": "Mold Capacity"
+          },
+          "planned_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Planned Start At"
+          },
+          "started_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Started At"
+          },
+          "ready_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ready At"
+          },
+          "cancelled_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancelled At"
+          },
+          "expected_ready_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Expected Ready At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "estimate_revision",
+          "block_size",
+          "quantity",
+          "mold_capacity",
+          "planned_start_at",
+          "started_at",
+          "ready_at",
+          "cancelled_at",
+          "expected_ready_at"
+        ],
+        "title": "ProductionRun"
+      },
+      "ProjectDetail": {
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/ProjectInfo"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "estimates": {
+            "items": {
+              "$ref": "#/components/schemas/EstimateView"
+            },
+            "type": "array",
+            "title": "Estimates"
+          },
+          "runs": {
+            "items": {
+              "$ref": "#/components/schemas/ProductionRun"
+            },
+            "type": "array",
+            "title": "Runs"
+          },
+          "collections": {
+            "items": {
+              "$ref": "#/components/schemas/Collection"
+            },
+            "type": "array",
+            "title": "Collections"
+          },
+          "balance": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/SizeBalance"
+            },
+            "propertyNames": {
+              "enum": [
+                "full",
+                "half"
+              ]
+            },
+            "type": "object",
+            "title": "Balance"
+          },
+          "forecast": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Forecast"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "history": {
+            "items": {
+              "$ref": "#/components/schemas/HistoryEvent"
+            },
+            "type": "array",
+            "title": "History"
+          }
+        },
+        "type": "object",
+        "required": [
+          "project",
+          "currency",
+          "estimates",
+          "runs",
+          "collections",
+          "balance",
+          "forecast",
+          "history"
+        ],
+        "title": "ProjectDetail"
+      },
+      "ProjectDraft": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requested_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested Start At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity",
+          "name",
+          "requested_start_at"
+        ],
+        "title": "ProjectDraft"
+      },
+      "ProjectInfo": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "requested_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested Start At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "planned",
+              "in_production",
+              "partially_ready",
+              "ready",
+              "collected",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity",
+          "id",
+          "name",
+          "requested_start_at",
+          "status",
+          "version",
+          "cancel_reason",
+          "created_at",
+          "updated_at"
+        ],
+        "title": "ProjectInfo"
+      },
+      "ProjectRead": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requested_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested Start At"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "planned",
+              "in_production",
+              "partially_ready",
+              "ready",
+              "collected",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "latest_estimate_revision": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Estimate Revision"
+          },
+          "estimate": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/EstimateRevision"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity",
+          "name",
+          "requested_start_at",
+          "id",
+          "version",
+          "status",
+          "created_at",
+          "updated_at",
+          "latest_estimate_revision",
+          "estimate"
+        ],
+        "title": "ProjectRead"
+      },
+      "ProjectSummary": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "requested_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested Start At"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "draft",
+              "planned",
+              "in_production",
+              "partially_ready",
+              "ready",
+              "collected",
+              "cancelled"
+            ],
+            "title": "Status"
+          },
+          "version": {
+            "type": "integer",
+            "title": "Version"
+          },
+          "cancel_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cancel Reason"
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "latest_total_cost": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Latest Total Cost"
+          },
+          "expected_ready_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Ready At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity",
+          "id",
+          "name",
+          "requested_start_at",
+          "status",
+          "version",
+          "cancel_reason",
+          "created_at",
+          "updated_at",
+          "currency",
+          "latest_total_cost",
+          "expected_ready_at"
+        ],
+        "title": "ProjectSummary"
+      },
+      "ProjectUpdate": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 100,
+            "minLength": 1,
+            "title": "Name"
+          },
+          "requested_start_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Requested Start At"
+          },
+          "version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity",
+          "name",
+          "requested_start_at",
+          "version"
+        ],
+        "title": "ProjectUpdate"
+      },
+      "RunReady": {
+        "properties": {
+          "event_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Event Key"
+          },
+          "ready_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Ready At"
+          },
+          "physically_checked": {
+            "type": "boolean",
+            "title": "Physically Checked"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_key",
+          "ready_at",
+          "physically_checked"
+        ],
+        "title": "RunReady"
+      },
+      "RunStart": {
+        "properties": {
+          "event_key": {
+            "type": "string",
+            "maxLength": 128,
+            "minLength": 1,
+            "title": "Event Key"
+          },
+          "started_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Started At"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "event_key",
+          "started_at"
+        ],
+        "title": "RunStart"
+      },
+      "SettingsRead": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency"
+          },
+          "sand_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Price Per Ton"
+          },
+          "stone_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Price Per Ton"
+          },
+          "cement_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cement Price Per Ton"
+          },
+          "full_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Molds"
+          },
+          "half_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Molds"
+          },
+          "sand_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Kg Per Wheelbarrow"
+          },
+          "stone_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Kg Per Wheelbarrow"
+          },
+          "version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          },
+          "updated_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Updated At"
+          },
+          "mixes": {
+            "items": {
+              "$ref": "#/components/schemas/Mix"
+            },
+            "type": "array",
+            "title": "Mixes"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currency",
+          "sand_price_per_ton",
+          "stone_price_per_ton",
+          "cement_price_per_ton",
+          "full_molds",
+          "half_molds",
+          "sand_kg_per_wheelbarrow",
+          "stone_kg_per_wheelbarrow",
+          "version",
+          "updated_at",
+          "mixes"
+        ],
+        "title": "SettingsRead"
+      },
+      "SettingsUpdate": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency"
+          },
+          "sand_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Price Per Ton"
+          },
+          "stone_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Price Per Ton"
+          },
+          "cement_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cement Price Per Ton"
+          },
+          "full_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Molds"
+          },
+          "half_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Molds"
+          },
+          "sand_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Kg Per Wheelbarrow"
+          },
+          "stone_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Kg Per Wheelbarrow"
+          },
+          "version": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "exclusiveMinimum": 0.0,
+            "title": "Version"
+          },
+          "mix_yields": {
+            "items": {
+              "$ref": "#/components/schemas/MixYield"
+            },
+            "type": "array",
+            "maxItems": 4,
+            "minItems": 4,
+            "title": "Mix Yields"
+          },
+          "confirmed_zero_prices": {
+            "items": {
+              "type": "string",
+              "enum": [
+                "sand",
+                "stone",
+                "cement"
+              ]
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Confirmed Zero Prices"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currency",
+          "sand_price_per_ton",
+          "stone_price_per_ton",
+          "cement_price_per_ton",
+          "full_molds",
+          "half_molds",
+          "sand_kg_per_wheelbarrow",
+          "stone_kg_per_wheelbarrow",
+          "version",
+          "mix_yields"
+        ],
+        "title": "SettingsUpdate"
+      },
+      "SizeBalance": {
+        "properties": {
+          "requested": {
+            "type": "integer",
+            "title": "Requested"
+          },
+          "ready": {
+            "type": "integer",
+            "title": "Ready"
+          },
+          "collected": {
+            "type": "integer",
+            "title": "Collected"
+          }
+        },
+        "type": "object",
+        "required": [
+          "requested",
+          "ready",
+          "collected"
+        ],
+        "title": "SizeBalance"
+      },
+      "SizeForecast": {
+        "properties": {
+          "quantity": {
+            "type": "integer",
+            "title": "Quantity"
+          },
+          "molds": {
+            "type": "integer",
+            "title": "Molds"
+          },
+          "cycles": {
+            "type": "integer",
+            "title": "Cycles"
+          },
+          "expected_ready_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Expected Ready At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "quantity",
+          "molds",
+          "cycles",
+          "expected_ready_at"
+        ],
+        "title": "SizeForecast"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

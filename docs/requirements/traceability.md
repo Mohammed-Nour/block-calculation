@@ -52,3 +52,18 @@ Frontend tests are in `frontend/src/tests/api/` (`rules.test.ts`, `mock-client.t
 | AT10 Cancel with active and waiting runs | `mock-client.test.ts` |
 | AT11 Repeated event, conflicting edit | `mock-client.test.ts` |
 | AT12 Interrupted save, backup restore | Backend (#14, #15) |
+
+## Backend implementation and verification
+
+| Requirement or check | Backend implementation | Automated evidence |
+|---|---|---|
+| FR01–FR06, AT01 | `settings.py`, migrations | `test_settings.py` |
+| FR07–FR10, FR15–FR18, FR27–FR28, FR32, AT02, AT05 | `projects.py` | `test_projects.py` |
+| FR11–FR14, AT03–AT04 | `calculation.py` | `test_calculation.py` |
+| FR19–FR24, AT06–AT08 | `production.py` | `test_production.py` |
+| FR25–FR26, AT09 | `production.py` | Collection bounds and concurrent collection tests |
+| FR29–FR31, AT10–AT11 | Production transactions and immutable audit events | Cancellation, replay, conflict, and rollback tests |
+| NFR04–NFR05, AT12 | Transactional migrations and `backup.py` | `test_operations.py`, deployment restore drill |
+| Frontend HTTP contract | `frontend/src/api/http.ts` | `frontend/src/tests/api/http-client.test.ts` against a real FastAPI process |
+
+Backend paths are under `backend/blockcalc/`. The schema snapshot is `docs/api/openapi.yaml`. Deployment and backup procedures are in [staging operations](../deployment/staging.md).
