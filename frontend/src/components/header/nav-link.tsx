@@ -30,7 +30,7 @@ export function NavLink({ link, isInline, onClick }: NavLinkProps) {
             : 'mb-2 bg-primary text-primary-foreground',
         ),
       }}
-      activeOptions={{ exact: true }}
+      activeOptions={{ exact: true, includeSearch: false }}
     >
       <link.icon size={17} />
       {link.label}
