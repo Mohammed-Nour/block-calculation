@@ -101,6 +101,7 @@ export function ProjectForm({ project }: { project?: Project }) {
             value={form.values.mix_id}
             error={form.errors.mix_id}
             onChange={(mix) => form.setField('mix_id', mix)}
+            groupRef={form.mixGroupRef}
           />
         </CardContent>
       </Card>
