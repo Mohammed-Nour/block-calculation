@@ -28,7 +28,7 @@ Owned by #4 and implemented on `ali/backend-foundation`; see [backend README](..
 
 | Method and path | Body | Returns |
 |---|---|---|
-| `POST /api/calculations` | `{ full_quantity, half_quantity, mix_id }` | Material calculation using current settings |
+| `POST /api/calculations` | full_quantity, half_quantity, mix_id, optional project_id | Material preview with settings_version; existing projects reuse their saved inputs |
 | `GET /api/projects?status=` | – | Paged project records with their current estimate; supports limit and offset |
 | `GET /api/projects/summaries?status=` | – | Frontend list items with saved currency, cost, and expected readiness |
 | `POST /api/projects` | Name, timezone-aware requested_start_at, full_quantity, half_quantity, optional mix_id | Project record |
@@ -49,6 +49,8 @@ Owned by #4 and implemented on `ali/backend-foundation`; see [backend README](..
 The HTTP client adapts draft and estimate responses to the frontend interface. It previews an estimate and sends the returned settings version when saving, then reloads the production detail. Original revision endpoints use `inputs.project`, `inputs.settings`, and `result`; the production view exposes the frontend snapshot fields `inputs.order`, `inputs.mix`, `inputs.settings`, and `results`.
 
 The first estimate uses current settings. Revisions reuse saved settings until both `use_current_prices` and `confirm_recalculation` are true. A changed project or calculation settings version returns 409. Stateless previews report missing inputs as `422 { detail: { message, missing_fields } }`. Project previews report field paths in `detail[].loc`.
+
+The project form carries the displayed preview's settings version into its save. If settings change, the draft remains available and the estimate is rejected until the User calculates again. Retrying that form updates the same saved draft.
 
 Event keys are scoped to a project. Retrying the same event returns the current state; changing an already used key's payload returns 409. Readiness needs 48 actual elapsed hours and a physical check. Event timestamps retain their offset and cannot be in the future.
 

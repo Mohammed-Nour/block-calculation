@@ -114,7 +114,7 @@ export function ProjectForm({ project }: { project?: Project }) {
           onCalculate={form.calculate}
         />
         {form.saveError && !form.hasErrors ? (
-          <FormAlert tone="error" title="The project was not saved">
+          <FormAlert tone="error" title="The save did not finish">
             {getErrorMessage(form.saveError, 'Try again.')}
           </FormAlert>
         ) : null}

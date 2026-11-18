@@ -297,9 +297,28 @@ export function createMockApi({
       }),
 
     calculateMaterials: (order) =>
-      read((state) =>
-        calculate(state, { ...order, name: '', requested_start_at: '' }),
-      ),
+      read((state) => {
+        if (order.project_id !== undefined)
+          findProject(state, order.project_id);
+        const previous =
+          order.project_id === undefined
+            ? undefined
+            : latestEstimate(state, order.project_id);
+        const snapshotMix =
+          previous?.inputs.mix.id === order.mix_id
+            ? previous.inputs.mix
+            : undefined;
+        return {
+          ...calculate(
+            state,
+            { ...order, name: '', requested_start_at: '' },
+            previous?.inputs.settings ?? state.settings,
+            snapshotMix ? [snapshotMix] : state.mixes,
+          ),
+          settings_version:
+            previous?.inputs.settings_version ?? state.settings.version,
+        };
+      }),
 
     listProjects: (status) =>
       read((state) =>
@@ -355,7 +374,10 @@ export function createMockApi({
         return detail(state, id);
       }),
 
-    saveEstimate: (id, { project_version, use_current_prices }) =>
+    saveEstimate: (
+      id,
+      { project_version, use_current_prices, settings_version },
+    ) =>
       write((state) => {
         const project = findProject(state, id);
         checkVersion(project, project_version);
@@ -368,6 +390,19 @@ export function createMockApi({
         const previous = latestEstimate(state, id);
         // §8.2: a revision keeps its original prices unless current ones are chosen.
         const keepSnapshot = previous !== undefined && !use_current_prices;
+        const sourceVersion = keepSnapshot
+          ? previous.inputs.settings_version
+          : state.settings.version;
+        if (
+          settings_version !== undefined &&
+          settings_version !== sourceVersion
+        ) {
+          throw new ApiError(409, {
+            message:
+              'Calculation settings changed. Calculate again before saving the estimate.',
+            current_settings_version: sourceVersion,
+          });
+        }
         const settings = keepSnapshot
           ? previous.inputs.settings
           : state.settings;
@@ -391,9 +426,7 @@ export function createMockApi({
             },
             mix: structuredClone(mix),
             settings: structuredClone(settings),
-            settings_version: keepSnapshot
-              ? previous.inputs.settings_version
-              : state.settings.version,
+            settings_version: sourceVersion,
           },
           results,
         });

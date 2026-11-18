@@ -1,11 +1,11 @@
 import { useMutation } from '@tanstack/react-query';
 
 import { api } from '@/api';
-import type { MaterialOrder } from '@/api';
+import type { CalculationInput } from '@/api';
 
-/** UC04: calculate the material estimate with current Settings, saving nothing. */
+/** UC04: calculate material costs for a new or existing draft. */
 export function useCalculationPreview() {
   return useMutation({
-    mutationFn: (order: MaterialOrder) => api.calculateMaterials(order),
+    mutationFn: (order: CalculationInput) => api.calculateMaterials(order),
   });
 }

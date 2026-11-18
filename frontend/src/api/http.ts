@@ -65,6 +65,16 @@ export function createHttpApi(baseURL: string): BlockCalcApi {
       const preview = await call<{ settings_version: number }>(
         http.post(`/api/projects/${id}/calculate`, request),
       );
+      if (
+        input.settings_version !== undefined &&
+        input.settings_version !== preview.settings_version
+      ) {
+        throw new ApiError(409, {
+          message:
+            'The draft is saved. Calculation settings changed. Calculate again before saving the estimate.',
+          current_settings_version: preview.settings_version,
+        });
+      }
       await call(
         http.post(`/api/projects/${id}/estimates`, {
           ...request,

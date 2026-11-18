@@ -20,8 +20,21 @@ from .calculation import (
     calculate_materials,
 )
 from .db import transaction
-from .projects import ProjectId, ProjectStatus, _check_version, read_project
-from .settings import Count, DatabasePath, PositiveCount, read_settings
+from .projects import (
+    ProjectId,
+    ProjectStatus,
+    _check_version,
+    _latest_estimate,
+    read_project,
+)
+from .settings import (
+    Count,
+    DatabasePath,
+    Mix,
+    PositiveCount,
+    SettingsValues,
+    read_settings,
+)
 
 router = APIRouter(tags=["Production"])
 BlockSize = Literal["full", "half"]
@@ -102,10 +115,17 @@ class ProjectInfo(MaterialOrder):
     updated_at: AwareDatetime
 
 
+class EstimateViewInputs(BaseModel):
+    order: MaterialOrder
+    mix: Mix
+    settings: SettingsValues
+    settings_version: int
+
+
 class EstimateView(BaseModel):
     revision: int
     created_at: AwareDatetime
-    inputs: dict
+    inputs: EstimateViewInputs
     results: MaterialCalculation
 
 
@@ -163,6 +183,14 @@ class CancelProject(PlanProduction):
     reason: Annotated[
         str, StringConstraints(strip_whitespace=True, min_length=1, max_length=1000)
     ]
+
+
+class CalculationInput(MaterialOrder):
+    project_id: PositiveCount | None = None
+
+
+class MaterialPreview(MaterialCalculation):
+    settings_version: int
 
 
 def forecast_order(start: datetime, quantities: dict, molds: dict) -> Forecast:
@@ -426,10 +454,19 @@ def _finish(
 
 
 @router.post("/api/calculations")
-def preview_materials(order: MaterialOrder, path: DatabasePath) -> MaterialCalculation:
+def preview_materials(order: CalculationInput, path: DatabasePath) -> MaterialPreview:
     with transaction(path) as connection:
+        settings = read_settings(connection)
+        if order.project_id is not None:
+            read_project(connection, order.project_id)
+            previous = _latest_estimate(connection, order.project_id)
+            if previous is not None:
+                settings = previous.inputs.settings
         try:
-            return calculate_materials(order, read_settings(connection))
+            result = calculate_materials(order, settings)
+            return MaterialPreview(
+                **result.model_dump(), settings_version=settings.version
+            )
         except MissingCalculationInputs as error:
             raise HTTPException(
                 422,

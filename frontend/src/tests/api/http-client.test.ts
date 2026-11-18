@@ -157,9 +157,17 @@ describe.runIf(process.env.BLOCKCALC_TEST_PYTHON)(
         })),
         confirmed_zero_prices: [],
       });
+      const editPreview = await api.calculateMaterials({
+        full_quantity: 1700,
+        half_quantity: 300,
+        mix_id: 2,
+        project_id: detail.project.id,
+      });
+      expect(editPreview.total_cost).toBe('691.20');
       detail = await api.saveEstimate(detail.project.id, {
         project_version: detail.project.version,
         use_current_prices: false,
+        settings_version: editPreview.settings_version,
       });
       expect(detail.estimates[1]?.results.total_cost).toBe('691.20');
       detail = await api.saveEstimate(detail.project.id, {
@@ -178,6 +186,38 @@ describe.runIf(process.env.BLOCKCALC_TEST_PYTHON)(
           (project) => project.id === detail.project.id,
         )?.latest_total_cost,
       ).toBe('745.20');
+    });
+
+    it('rejects a new-order save when settings changed after the displayed preview', async () => {
+      const preview = await api.calculateMaterials({
+        full_quantity: 1700,
+        half_quantity: 300,
+        mix_id: 2,
+      });
+      const settings = await api.getSettings();
+      const { mixes, updated_at, ...values } = settings;
+      expect(Date.parse(updated_at)).not.toBeNaN();
+      await api.updateSettings({
+        ...values,
+        cement_price_per_ton: '120',
+        mix_yields: mixes.map(({ id, full_yield, half_yield }) => ({
+          id,
+          full_yield,
+          half_yield,
+        })),
+        confirmed_zero_prices: [],
+      });
+      const detail = await draft();
+      await expect(
+        api.saveEstimate(detail.project.id, {
+          project_version: detail.project.version,
+          use_current_prices: false,
+          settings_version: preview.settings_version,
+        }),
+      ).rejects.toMatchObject({ status: 409 });
+      expect((await api.getProject(detail.project.id)).estimates).toHaveLength(
+        0,
+      );
     });
 
     it('plans, starts, confirms, and partially collects without duplicate events', async () => {

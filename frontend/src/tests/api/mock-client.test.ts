@@ -127,6 +127,35 @@ describe('projects and estimates', () => {
     expect(fresh.estimates.at(-1)?.results.total_cost).toBe('745.20');
   });
 
+  it('rejects a stale displayed preview and keeps existing-project preview prices', async () => {
+    const preview = await api.calculateMaterials({
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 2,
+    });
+    const saved = await estimated();
+    await configure({ version: 2, cement_price_per_ton: '120' });
+    const editPreview = await api.calculateMaterials({
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 2,
+      project_id: saved.project.id,
+    });
+    expect(editPreview.total_cost).toBe('691.20');
+    expect(editPreview.settings_version).toBe(preview.settings_version);
+    const created = await draft();
+    await expect(
+      api.saveEstimate(created.project.id, {
+        project_version: created.project.version,
+        use_current_prices: false,
+        settings_version: preview.settings_version,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await api.getProject(created.project.id)).estimates).toHaveLength(
+      0,
+    );
+  });
+
   it('FR17: a revision keeps the previous one and its prices by default', async () => {
     const saved = await estimated();
     await configure({ version: 2, cement_price_per_ton: '120' });

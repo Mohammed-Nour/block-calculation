@@ -79,7 +79,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/MaterialOrder"
+                "$ref": "#/components/schemas/CalculationInput"
               }
             }
           },
@@ -91,7 +91,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MaterialCalculation"
+                  "$ref": "#/components/schemas/MaterialPreview"
                 }
               }
             }
@@ -963,6 +963,55 @@
   },
   "components": {
     "schemas": {
+      "CalculationInput": {
+        "properties": {
+          "full_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Quantity"
+          },
+          "half_quantity": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Quantity"
+          },
+          "mix_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 4.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mix Id"
+          },
+          "project_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 9.223372036854776e+18,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Project Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "full_quantity",
+          "half_quantity"
+        ],
+        "title": "CalculationInput"
+      },
       "CalculationRequest": {
         "properties": {
           "version": {
@@ -1221,9 +1270,7 @@
             "title": "Created At"
           },
           "inputs": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Inputs"
+            "$ref": "#/components/schemas/EstimateViewInputs"
           },
           "results": {
             "$ref": "#/components/schemas/MaterialCalculation"
@@ -1237,6 +1284,31 @@
           "results"
         ],
         "title": "EstimateView"
+      },
+      "EstimateViewInputs": {
+        "properties": {
+          "order": {
+            "$ref": "#/components/schemas/MaterialOrder"
+          },
+          "mix": {
+            "$ref": "#/components/schemas/Mix"
+          },
+          "settings": {
+            "$ref": "#/components/schemas/SettingsValues"
+          },
+          "settings_version": {
+            "type": "integer",
+            "title": "Settings Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "order",
+          "mix",
+          "settings",
+          "settings_version"
+        ],
+        "title": "EstimateViewInputs"
       },
       "Forecast": {
         "properties": {
@@ -1463,6 +1535,71 @@
           "half_quantity"
         ],
         "title": "MaterialOrder"
+      },
+      "MaterialPreview": {
+        "properties": {
+          "mix_id": {
+            "type": "integer",
+            "title": "Mix Id"
+          },
+          "currency": {
+            "type": "string",
+            "title": "Currency"
+          },
+          "full_batches": {
+            "type": "integer",
+            "title": "Full Batches"
+          },
+          "half_batches": {
+            "type": "integer",
+            "title": "Half Batches"
+          },
+          "total_batches": {
+            "type": "integer",
+            "title": "Total Batches"
+          },
+          "full_surplus": {
+            "type": "integer",
+            "title": "Full Surplus"
+          },
+          "half_surplus": {
+            "type": "integer",
+            "title": "Half Surplus"
+          },
+          "sand": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "stone": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "cement": {
+            "$ref": "#/components/schemas/MaterialCost"
+          },
+          "total_cost": {
+            "type": "string",
+            "title": "Total Cost"
+          },
+          "settings_version": {
+            "type": "integer",
+            "title": "Settings Version"
+          }
+        },
+        "type": "object",
+        "required": [
+          "mix_id",
+          "currency",
+          "full_batches",
+          "half_batches",
+          "total_batches",
+          "full_surplus",
+          "half_surplus",
+          "sand",
+          "stone",
+          "cement",
+          "total_cost",
+          "settings_version"
+        ],
+        "title": "MaterialPreview"
       },
       "Mix": {
         "properties": {
@@ -2470,6 +2607,100 @@
           "mix_yields"
         ],
         "title": "SettingsUpdate"
+      },
+      "SettingsValues": {
+        "properties": {
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Za-z]{3}$",
+            "title": "Currency"
+          },
+          "sand_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Price Per Ton"
+          },
+          "stone_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Price Per Ton"
+          },
+          "cement_price_per_ton": {
+            "anyOf": [
+              {
+                "type": "string",
+                "ge": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Cement Price Per Ton"
+          },
+          "full_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Full Molds"
+          },
+          "half_molds": {
+            "type": "integer",
+            "maximum": 9.223372036854776e+18,
+            "minimum": 0.0,
+            "title": "Half Molds"
+          },
+          "sand_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sand Kg Per Wheelbarrow"
+          },
+          "stone_kg_per_wheelbarrow": {
+            "anyOf": [
+              {
+                "type": "string",
+                "gt": 0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Stone Kg Per Wheelbarrow"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "currency",
+          "sand_price_per_ton",
+          "stone_price_per_ton",
+          "cement_price_per_ton",
+          "full_molds",
+          "half_molds",
+          "sand_kg_per_wheelbarrow",
+          "stone_kg_per_wheelbarrow"
+        ],
+        "title": "SettingsValues"
       },
       "SizeBalance": {
         "properties": {
