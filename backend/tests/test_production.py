@@ -542,3 +542,8 @@ class ProductionTests(unittest.TestCase):
                 self.start, {"full": 2**63 - 1, "half": 0}, {"full": 1, "half": 0}
             )
         self.assertEqual(error.exception.status_code, 422)
+        detail = self.prepare(2**63 - 1, 0, plan=False)
+        self.assertIsNone(detail["forecast"])
+        self.assertIsNotNone(detail["estimates"][-1]["results"]["total_cost"])
+        self.post("/plan", {"project_version": detail["project"]["version"]}, 422)
+        self.assertEqual(self.client.get(self.base + "/production").json()["runs"], [])

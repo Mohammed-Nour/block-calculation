@@ -302,7 +302,11 @@ def project_detail(connection: sqlite3.Connection, project_id: int) -> ProjectDe
             if capacities:
                 molds[size] = max(capacities)
     quantities = {size: balance[size].requested for size in SIZES}
-    forecast = forecast_order(project.requested_start_at, quantities, molds)
+    try:
+        forecast = forecast_order(project.requested_start_at, quantities, molds)
+    except HTTPException:
+        # Drafts and their saved costs remain readable when the calendar cannot hold a forecast.
+        forecast = None
     if active:
         sizes = {}
         for size in SIZES:
