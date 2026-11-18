@@ -1291,7 +1291,21 @@
             "$ref": "#/components/schemas/MaterialOrder"
           },
           "mix": {
-            "$ref": "#/components/schemas/Mix"
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Mix"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "mixes": {
+            "items": {
+              "$ref": "#/components/schemas/Mix"
+            },
+            "type": "array",
+            "title": "Mixes"
           },
           "settings": {
             "$ref": "#/components/schemas/SettingsValues"
@@ -1305,6 +1319,7 @@
         "required": [
           "order",
           "mix",
+          "mixes",
           "settings",
           "settings_version"
         ],

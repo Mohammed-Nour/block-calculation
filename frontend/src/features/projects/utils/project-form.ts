@@ -64,8 +64,26 @@ export function toOrder(values: ProjectFormValues): MaterialOrder {
   };
 }
 
-/** The `missing_fields` of a 422 calculation error, if any. */
+/** Missing calculation inputs from field issues or legacy error responses. */
 export function missingFields(error: unknown): string[] {
+  if (
+    error instanceof Error &&
+    'detail' in error &&
+    Array.isArray(error.detail)
+  ) {
+    return error.detail
+      .filter(
+        (issue: unknown): issue is { type: string; loc: (string | number)[] } =>
+          typeof issue === 'object' &&
+          issue !== null &&
+          'type' in issue &&
+          issue.type === 'value_error.missing_calculation_input' &&
+          'loc' in issue &&
+          Array.isArray(issue.loc),
+      )
+      .map((issue) => issue.loc.at(-1))
+      .filter((field): field is string => typeof field === 'string');
+  }
   if (
     error instanceof Error &&
     'detail' in error &&

@@ -15,7 +15,13 @@ from .calculation import (
     calculate_materials,
 )
 from .db import transaction
-from .settings import DatabasePath, PositiveCount, SettingsRead, SQLITE_MAX_INT, read_settings
+from .settings import (
+    SQLITE_MAX_INT,
+    DatabasePath,
+    PositiveCount,
+    SettingsRead,
+    read_settings,
+)
 
 router = APIRouter(prefix="/api/projects", tags=["Projects"])
 ProjectId = Annotated[int, Path(gt=0, le=SQLITE_MAX_INT)]
@@ -206,12 +212,13 @@ def update_project(project_id: ProjectId, update: ProjectUpdate, path: DatabaseP
         order_changed = (
             update.full_quantity, update.half_quantity, update.mix_id
         ) != (project.full_quantity, project.half_quantity, project.mix_id)
+        start_changed = update.requested_start_at != project.requested_start_at
         started = connection.execute("""
             SELECT 1 FROM production_runs WHERE project_id = ? AND started_at IS NOT NULL LIMIT 1
         """, (project_id,)).fetchone()
         locked_statuses = {"in_production", "partially_ready", "ready", "collected", "cancelled"}
-        if order_changed and (started is not None or project.status in locked_statuses):
-            raise HTTPException(status_code=409, detail="Quantities and mix are locked for this project")
+        if (order_changed or start_changed) and (started is not None or project.status in locked_statuses):
+            raise HTTPException(status_code=409, detail="Quantities, mix, and start time are locked for this project")
 
         status = "draft" if order_changed else project.status
         values = update.model_dump(mode="json") | {"id": project_id, "status": status}
@@ -223,7 +230,7 @@ def update_project(project_id: ProjectId, update: ProjectUpdate, path: DatabaseP
                 updated_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
             WHERE id = :id
         """, values)
-        if order_changed or update.requested_start_at != project.requested_start_at:
+        if order_changed or start_changed:
             connection.execute("UPDATE projects SET production_plan_json = NULL WHERE id = ?", (project_id,))
             connection.execute("""
                 UPDATE production_runs SET cancelled_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')

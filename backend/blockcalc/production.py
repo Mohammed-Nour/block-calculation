@@ -40,6 +40,7 @@ router = APIRouter(tags=["Production"])
 BlockSize = Literal["full", "half"]
 SIZES: tuple[BlockSize, ...] = ("full", "half")
 CYCLE_HOURS = 48
+CLOCK_SKEW_SECONDS = 120
 
 
 def utc_now() -> datetime:
@@ -51,7 +52,14 @@ def add_hours(start: datetime, hours: int) -> datetime:
         return (start.astimezone(UTC) + timedelta(hours=hours)).astimezone(start.tzinfo)
     except (OverflowError, ValueError) as error:
         raise HTTPException(
-            422, detail="Forecast exceeds the supported calendar range"
+            422,
+            detail=[
+                {
+                    "loc": ["body", "requested_start_at"],
+                    "msg": "Forecast exceeds the supported calendar range",
+                    "type": "value_error.calendar_range",
+                }
+            ],
         ) from error
 
 
@@ -117,7 +125,8 @@ class ProjectInfo(MaterialOrder):
 
 class EstimateViewInputs(BaseModel):
     order: MaterialOrder
-    mix: Mix
+    mix: Mix | None
+    mixes: list[Mix]
     settings: SettingsValues
     settings_version: int
 
@@ -250,7 +259,9 @@ def project_detail(connection: sqlite3.Connection, project_id: int) -> ProjectDe
         inputs = json.loads(estimate["inputs_json"])
         snapshot = inputs["settings"]
         order = inputs["project"]
-        mix = next(mix for mix in snapshot["mixes"] if mix["id"] == order["mix_id"])
+        mix = next(
+            (mix for mix in snapshot["mixes"] if mix["id"] == order["mix_id"]), None
+        )
         estimates.append(
             EstimateView(
                 revision=estimate["revision"],
@@ -261,6 +272,7 @@ def project_detail(connection: sqlite3.Connection, project_id: int) -> ProjectDe
                         for key in ("full_quantity", "half_quantity", "mix_id")
                     },
                     "mix": mix,
+                    "mixes": snapshot["mixes"],
                     "settings": {
                         key: snapshot[key]
                         for key in type(settings).model_fields
@@ -335,11 +347,13 @@ def project_detail(connection: sqlite3.Connection, project_id: int) -> ProjectDe
     except HTTPException:
         # Drafts and their saved costs remain readable when the calendar cannot hold a forecast.
         forecast = None
-    if active:
+    if active or row["production_plan_json"] is not None:
         sizes = {}
         for size in SIZES:
             matching = [run for run in active if run.block_size == size]
             end = matching[-1].expected_ready_at if matching else None
+            if sum(run.quantity for run in matching) < quantities[size]:
+                end = None
             if not quantities[size]:
                 end = project.requested_start_at
             sizes[size] = SizeForecast(
@@ -382,17 +396,29 @@ def project_detail(connection: sqlite3.Connection, project_id: int) -> ProjectDe
 
 
 def _validate_time(field: str, value: datetime) -> None:
-    if value > utc_now():
+    if value > utc_now() + timedelta(seconds=CLOCK_SKEW_SECONDS):
         raise HTTPException(
             422,
             detail=[
                 {
                     "loc": ["body", field],
-                    "msg": "Record an event that has already occurred",
+                    "msg": "Event time is more than two minutes ahead of the server clock",
                     "type": "value_error",
                 }
             ],
         )
+
+
+def _canonical_payload(payload: dict | None) -> dict | None:
+    if payload is None:
+        return None
+    normalized = payload.copy()
+    for field in ("started_at", "ready_at", "collected_at"):
+        if field in normalized:
+            normalized[field] = (
+                datetime.fromisoformat(normalized[field]).astimezone(UTC).isoformat()
+            )
+    return normalized
 
 
 def _replayed(connection, project_id, event_type, event_key, payload) -> bool:
@@ -404,10 +430,9 @@ def _replayed(connection, project_id, event_type, event_key, payload) -> bool:
     ).fetchone()
     if event is None:
         return False
-    if (
-        event["event_type"] != event_type
-        or json.loads(event["details_json"]).get("payload") != payload
-    ):
+    if event["event_type"] != event_type or _canonical_payload(
+        json.loads(event["details_json"]).get("payload")
+    ) != _canonical_payload(payload):
         raise HTTPException(
             409, detail="This event key was used for a different operation"
         )
@@ -447,7 +472,7 @@ def _finish(
             project_id,
             event_type,
             event_key,
-            json.dumps({"summary": summary, "payload": payload}),
+            json.dumps({"summary": summary, "payload": _canonical_payload(payload)}),
         ),
     )
     return project_detail(connection, project_id)
@@ -470,10 +495,16 @@ def preview_materials(order: CalculationInput, path: DatabasePath) -> MaterialPr
         except MissingCalculationInputs as error:
             raise HTTPException(
                 422,
-                detail={
-                    "message": "Complete the required calculation inputs",
-                    "missing_fields": error.fields,
-                },
+                detail=[
+                    {
+                        "loc": ["body" if field == "mix_id" else "settings", field],
+                        "msg": "Choose a mix before calculating"
+                        if field == "mix_id"
+                        else f"Configure {field.replace('_', ' ')}",
+                        "type": "value_error.missing_calculation_input",
+                    }
+                    for field in error.fields
+                ],
             ) from error
 
 
@@ -526,7 +557,14 @@ def plan_production(
             )
         if project.estimate is None:
             raise HTTPException(
-                422, detail="Save an estimate for the current order before planning"
+                422,
+                detail=[
+                    {
+                        "loc": ["project", "estimate"],
+                        "msg": "Save an estimate for the current order before planning",
+                        "type": "value_error.missing_estimate",
+                    }
+                ],
             )
         if connection.execute(
             """
@@ -544,10 +582,14 @@ def plan_production(
         if forecast.untimed_sizes:
             raise HTTPException(
                 422,
-                detail={
-                    "message": "Add molds for each ordered block size",
-                    "untimed_sizes": forecast.untimed_sizes,
-                },
+                detail=[
+                    {
+                        "loc": ["settings", f"{size}_molds"],
+                        "msg": f"Add {size} molds before planning",
+                        "type": "value_error.missing_mold_capacity",
+                    }
+                    for size in forecast.untimed_sizes
+                ],
             )
         for size in SIZES:
             capacity = molds[size]
@@ -675,9 +717,10 @@ def ready_run(
                     }
                 ],
             )
-        if request.ready_at < add_hours(
+        earliest_ready = add_hours(
             datetime.fromisoformat(run["started_at"]), CYCLE_HOURS
-        ):
+        )
+        if request.ready_at < earliest_ready or utc_now() < earliest_ready:
             raise HTTPException(
                 422,
                 detail=[

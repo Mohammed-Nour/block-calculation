@@ -133,7 +133,12 @@ describe.runIf(process.env.BLOCKCALC_TEST_PYTHON)(
         }),
       ).rejects.toMatchObject({
         status: 422,
-        detail: { missing_fields: ['mix_id'] },
+        detail: [
+          {
+            loc: ['body', 'mix_id'],
+            type: 'value_error.missing_calculation_input',
+          },
+        ],
       });
     });
 
@@ -177,7 +182,7 @@ describe.runIf(process.env.BLOCKCALC_TEST_PYTHON)(
       expect(
         detail.estimates.map((estimate) => estimate.results.total_cost),
       ).toEqual(['691.20', '691.20', '745.20']);
-      expect(detail.estimates[2]?.inputs.mix.id).toBe(2);
+      expect(detail.estimates[2]?.inputs.mix?.id).toBe(2);
       expect((await api.getProject(detail.project.id)).estimates).toEqual(
         detail.estimates,
       );

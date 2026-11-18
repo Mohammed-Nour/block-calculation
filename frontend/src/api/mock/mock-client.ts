@@ -222,13 +222,16 @@ export function createMockApi({
       return calculateMaterials(order, settings, mixes);
     } catch (error) {
       if (error instanceof MissingCalculationInputs) {
-        throw new ApiError(422, {
-          message:
-            error.fields[0] === 'mix_id'
-              ? 'Choose a mix before calculating the cost.'
-              : 'Some settings are missing. Complete them before calculating.',
-          missing_fields: error.fields,
-        });
+        throw validationError(
+          error.fields.map((field) => ({
+            loc: [field === 'mix_id' ? 'body' : 'settings', field],
+            msg:
+              field === 'mix_id'
+                ? 'Choose a mix before calculating the cost.'
+                : `Configure ${field.replaceAll('_', ' ')}`,
+            type: 'value_error.missing_calculation_input',
+          })),
+        );
       }
       throw error;
     }
@@ -304,16 +307,16 @@ export function createMockApi({
           order.project_id === undefined
             ? undefined
             : latestEstimate(state, order.project_id);
-        const snapshotMix =
-          previous?.inputs.mix.id === order.mix_id
-            ? previous.inputs.mix
-            : undefined;
+        const mixes = previous
+          ? (previous.inputs.mixes ??
+            (previous.inputs.mix ? [previous.inputs.mix] : []))
+          : state.mixes;
         return {
           ...calculate(
             state,
             { ...order, name: '', requested_start_at: '' },
             previous?.inputs.settings ?? state.settings,
-            snapshotMix ? [snapshotMix] : state.mixes,
+            mixes,
           ),
           settings_version:
             previous?.inputs.settings_version ?? state.settings.version,
@@ -356,7 +359,7 @@ export function createMockApi({
         checkVersion(project, version);
         if (isOrderLocked(project.status)) {
           throw conflictError(
-            'Quantities and mix are locked once production starts.',
+            'Quantities, mix, and production start are locked once production starts.',
             project.version,
           );
         }
@@ -406,11 +409,10 @@ export function createMockApi({
         const settings = keepSnapshot
           ? previous.inputs.settings
           : state.settings;
-        const snapshotMix =
-          keepSnapshot && previous.inputs.mix.id === project.mix_id
-            ? previous.inputs.mix
-            : undefined;
-        const mixes = snapshotMix ? [snapshotMix] : state.mixes;
+        const mixes = keepSnapshot
+          ? (previous.inputs.mixes ??
+            (previous.inputs.mix ? [previous.inputs.mix] : []))
+          : state.mixes;
         const results = calculate(state, project, settings, mixes);
         const mix = mixes.find((candidate) => candidate.id === project.mix_id);
         if (!mix) throw notFoundError('Mix not found');
@@ -425,6 +427,7 @@ export function createMockApi({
               mix_id: project.mix_id,
             },
             mix: structuredClone(mix),
+            mixes: structuredClone(mixes),
             settings: structuredClone(settings),
             settings_version: sourceVersion,
           },
@@ -450,10 +453,13 @@ export function createMockApi({
         }
         const estimate = latestEstimate(state, id);
         if (!estimateMatches(project, estimate) || !estimate) {
-          throw new ApiError(422, {
-            message:
-              'Save an estimate for the current order before planning production.',
-          });
+          throw validationError([
+            {
+              loc: ['project', 'estimate'],
+              msg: 'Save an estimate for the current order before planning production.',
+              type: 'value_error.missing_estimate',
+            },
+          ]);
         }
         const forecast = forecastOrder(
           project.requested_start_at,
@@ -461,10 +467,13 @@ export function createMockApi({
           molds(state),
         );
         if (forecast.untimed_sizes.length > 0) {
-          throw new ApiError(422, {
-            message: `No ${forecast.untimed_sizes.join(' or ')} molds are set. Add molds in Settings before planning.`,
-            untimed_sizes: forecast.untimed_sizes,
-          });
+          throw validationError(
+            forecast.untimed_sizes.map((size) => ({
+              loc: ['settings', `${size}_molds`],
+              msg: `Add ${size} molds before planning.`,
+              type: 'value_error.missing_mold_capacity',
+            })),
+          );
         }
         state.runs[id] = planRuns(
           project.requested_start_at,

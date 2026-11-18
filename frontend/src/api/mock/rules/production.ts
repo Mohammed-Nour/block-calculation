@@ -152,7 +152,13 @@ export function forecastRuns(
         quantity: quantities[size],
         molds: molds[size],
         cycles: active.length,
-        expected_ready_at: last ? last.expected_ready_at : null,
+        expected_ready_at:
+          quantities[size] === 0
+            ? start
+            : active.reduce((sum, run) => sum + run.quantity, 0) <
+                quantities[size]
+              ? null
+              : (last?.expected_ready_at ?? null),
       };
       return [size, forecast];
     }),
@@ -197,7 +203,7 @@ export function deriveStatus(
   return 'planned';
 }
 
-/** FR18: quantities and mix lock once production starts. */
+/** FR18 and the schedule safeguard: order inputs lock once production starts. */
 export function isOrderLocked(status: ProjectStatus) {
   return status !== 'draft' && status !== 'planned';
 }

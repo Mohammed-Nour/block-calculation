@@ -1,15 +1,17 @@
+import json
 import unittest
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from unittest.mock import patch
 
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
 from blockcalc.app import create_app
 from blockcalc.db import transaction
 from blockcalc.production import forecast_order
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
 
 class ProductionTests(unittest.TestCase):
@@ -170,7 +172,11 @@ class ProductionTests(unittest.TestCase):
         update["full_quantity"] = 11
         changed = self.client.put(self.base, json=update).json()
         self.post("/plan", {"project_version": project["version"]}, 409)
-        self.post("/plan", {"project_version": changed["version"]}, 422)
+        errors = self.post("/plan", {"project_version": changed["version"]}, 422)[
+            "detail"
+        ]
+        self.assertEqual(errors[0]["loc"], ["project", "estimate"])
+        self.assertEqual(set(errors[0]), {"loc", "msg", "type"})
         preview = self.client.post(
             self.base + "/calculate", json={"version": changed["version"]}
         ).json()
@@ -489,7 +495,7 @@ class ProductionTests(unittest.TestCase):
             f"/runs/{run_id}/start",
             {
                 "event_key": "future",
-                "started_at": (self.start + timedelta(seconds=1)).isoformat(),
+                "started_at": (self.start + timedelta(seconds=121)).isoformat(),
             },
             422,
         )
@@ -567,3 +573,155 @@ class ProductionTests(unittest.TestCase):
         self.assertTrue(
             any(event["event_type"] == "project.cancelled" for event in done["history"])
         )
+
+    def test_start_date_edit_cannot_strand_active_or_partially_ready_order(self):
+        detail = self.prepare(120, 0)
+        first, second, third = detail["runs"]
+        self.start_run(first["id"])
+        for expected_status in ("in_production", "partially_ready"):
+            before = self.client.get(self.base + "/production").json()
+            project = before["project"]
+            self.assertEqual(project["status"], expected_status)
+            payload = {
+                key: project[key]
+                for key in (
+                    "name",
+                    "requested_start_at",
+                    "full_quantity",
+                    "half_quantity",
+                    "mix_id",
+                    "version",
+                )
+            }
+            payload["requested_start_at"] = (self.start + timedelta(days=1)).isoformat()
+            response = self.client.put(self.base, json=payload)
+            self.assertEqual(response.status_code, 409, response.text)
+            self.assertEqual(self.client.get(self.base + "/production").json(), before)
+            if expected_status == "in_production":
+                self.ready_run(first["id"])
+        self.start_run(second["id"], "second", hours=48)
+        self.ready_run(second["id"], "second-ready", hours=96)
+        self.start_run(third["id"], "third", hours=96)
+        finished = self.ready_run(third["id"], "third-ready", hours=144)
+        self.assertEqual(finished["balance"]["full"]["ready"], 120)
+
+    def test_forecast_does_not_hide_quantity_without_an_uncancelled_run(self):
+        detail = self.prepare(120, 0)
+        first = detail["runs"][0]
+        self.start_run(first["id"])
+        self.ready_run(first["id"])
+        with transaction(self.path, write=True) as db:
+            db.execute(
+                "UPDATE production_runs SET cancelled_at = ? WHERE started_at IS NULL",
+                (self.now.isoformat(),),
+            )
+        response = self.client.get(self.base + "/production")
+        self.assertEqual(response.status_code, 200, response.text)
+        forecast = response.json()["forecast"]
+        self.assertIsNone(forecast["expected_ready_at"])
+        self.assertIsNone(forecast["full"]["expected_ready_at"])
+        self.assertEqual(forecast["untimed_sizes"], ["full"])
+        self.assertEqual(response.json()["balance"]["full"]["ready"], 50)
+
+    def test_missing_snapshot_mix_keeps_saved_cost_and_history_readable(self):
+        detail = self.prepare(plan=False)
+        original = self.client.get(self.base + "/estimates/1").json()
+        inputs = original["inputs"]
+        inputs["settings"]["mixes"] = [
+            mix for mix in inputs["settings"]["mixes"] if mix["id"] != 2
+        ]
+        with transaction(self.path, write=True) as db:
+            db.execute(
+                "INSERT INTO estimate_revisions (project_id, revision, inputs_json, results_json) VALUES (?, 2, ?, ?)",
+                (
+                    detail["project"]["id"],
+                    json.dumps(inputs),
+                    json.dumps(original["result"]),
+                ),
+            )
+        response = self.client.get(self.base + "/production")
+        self.assertEqual(response.status_code, 200, response.text)
+        estimate = response.json()["estimates"][-1]
+        self.assertIsNone(estimate["inputs"]["mix"])
+        self.assertEqual(estimate["results"], original["result"])
+        self.assertEqual(len(response.json()["estimates"]), 2)
+
+    def test_replay_normalizes_offsets_in_existing_audit_payloads(self):
+        detail = self.prepare()
+        run_id = detail["runs"][0]["id"]
+        # Simulate the previous release's raw offset payload in the immutable ledger.
+        with patch(
+            "blockcalc.production._canonical_payload",
+            side_effect=lambda payload: payload,
+        ):
+            started = self.start_run(run_id)
+        replay = self.post(
+            f"/runs/{run_id}/start",
+            {
+                "event_key": "start",
+                "started_at": self.start.astimezone(UTC).isoformat(),
+            },
+        )
+        self.assertEqual(replay["project"]["version"], started["project"]["version"])
+        ready = self.ready_run(run_id)
+        replay = self.post(
+            f"/runs/{run_id}/ready",
+            {
+                "event_key": "ready",
+                "ready_at": self.now.astimezone(UTC).isoformat().replace("+00:00", "Z"),
+                "physically_checked": True,
+            },
+        )
+        self.assertEqual(replay["project"]["version"], ready["project"]["version"])
+        collected = self.collect(4)
+        replay = self.post(
+            "/collections",
+            {
+                "event_key": "collect",
+                "full_quantity": 4,
+                "half_quantity": 0,
+                "collected_at": self.now.astimezone(UTC).isoformat(),
+            },
+        )
+        self.assertEqual(replay["project"]["version"], collected["project"]["version"])
+        self.assertEqual(replay["balance"]["full"]["collected"], 4)
+
+    def test_clock_skew_tolerance_does_not_shorten_actual_curing_time(self):
+        detail = self.prepare()
+        run_id = detail["runs"][0]["id"]
+        self.post(
+            f"/runs/{run_id}/start",
+            {
+                "event_key": "ahead",
+                "started_at": (self.start + timedelta(seconds=2)).isoformat(),
+            },
+        )
+        self.now = self.start + timedelta(hours=48, seconds=1)
+        payload = {
+            "event_key": "ready",
+            "ready_at": (self.now + timedelta(seconds=120)).isoformat(),
+            "physically_checked": True,
+        }
+        self.post(f"/runs/{run_id}/ready", payload, 422)
+        self.now += timedelta(seconds=1)
+        ready = self.post(f"/runs/{run_id}/ready", payload)
+        self.assertEqual(ready["balance"]["full"]["ready"], 10)
+
+    def test_calculation_and_plan_errors_have_field_paths(self):
+        detail = self.prepare(plan=False)
+        self.settings(full_molds=0)
+        errors = self.post(
+            "/plan", {"project_version": detail["project"]["version"]}, 422
+        )["detail"]
+        self.assertEqual(errors[0]["loc"], ["settings", "full_molds"])
+        self.assertEqual(set(errors[0]), {"loc", "msg", "type"})
+        response = self.client.post(
+            "/api/calculations",
+            json={
+                "full_quantity": 1,
+                "half_quantity": 0,
+                "mix_id": None,
+            },
+        )
+        self.assertEqual(response.status_code, 422)
+        self.assertEqual(response.json()["detail"][0]["loc"], ["body", "mix_id"])

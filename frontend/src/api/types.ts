@@ -128,7 +128,9 @@ export interface ProjectListItem extends Project {
 /** Everything an estimate used, so later Settings changes cannot alter it. */
 export interface EstimateInputs {
   order: MaterialOrder;
-  mix: Mix;
+  mix: Mix | null;
+  /** All recipes and yields saved with the revision; older mock records have only mix. */
+  mixes?: Mix[];
   settings: SettingsValues;
   settings_version: number;
 }
