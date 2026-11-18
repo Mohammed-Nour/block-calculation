@@ -80,4 +80,34 @@ describe('architecture rules', () => {
       ),
     ).toContain('boundaries/element-types');
   });
+
+  it('stops one feature from importing another', async () => {
+    expect(
+      await ruleIds(
+        'src/features/projects/components/thing.tsx',
+        "export { SettingsForm } from '@/features/settings/components/settings-form';\n",
+      ),
+    ).toContain('boundaries/element-types');
+    expect(
+      await ruleIds(
+        'src/features/projects/components/thing.tsx',
+        "export { FormField } from '@/components/common';\n",
+      ),
+    ).toEqual([]);
+  });
+
+  it('lets routes use only feature barrels', async () => {
+    expect(
+      await ruleIds(
+        'src/routes/thing.tsx',
+        "export { SettingsForm } from '@/features/settings/components/settings-form';\n",
+      ),
+    ).toContain('no-restricted-imports');
+    expect(
+      await ruleIds(
+        'src/routes/thing.tsx',
+        "export { SettingsForm } from '@/features/settings';\n",
+      ),
+    ).toEqual([]);
+  });
 });
