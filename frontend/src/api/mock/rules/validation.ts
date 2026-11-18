@@ -15,6 +15,7 @@ import { PROJECT_NAME_MAX_LENGTH } from '@/data';
 const DECIMAL = /^[0-9]+(?:\.[0-9]+)?$/;
 const CURRENCY = /^[A-Za-z]{3}$/;
 const MATERIALS: Material[] = ['sand', 'stone', 'cement'];
+const CLOCK_SKEW_MS = 120_000;
 
 const issue = (
   loc: (string | number)[],
@@ -185,7 +186,7 @@ export function validateCollection(
   return issues;
 }
 
-/** UC07–UC09: an event time must be a real time that has already happened. */
+/** UC07–UC09: match the backend's two-minute allowance for client clock skew. */
 export function validateEventTime(
   field: string,
   value: string,
@@ -194,8 +195,13 @@ export function validateEventTime(
 ): ValidationIssue[] {
   const time = Date.parse(value);
   if (Number.isNaN(time)) return [issue([field], `Enter the ${label} time`)];
-  if (time > now.getTime()) {
-    return [issue([field], `The ${label} time cannot be in the future`)];
+  if (time > now.getTime() + CLOCK_SKEW_MS) {
+    return [
+      issue(
+        [field],
+        `The ${label} time is more than two minutes ahead of the server clock`,
+      ),
+    ];
   }
   return [];
 }

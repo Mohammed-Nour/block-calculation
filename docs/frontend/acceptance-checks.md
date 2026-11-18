@@ -53,8 +53,11 @@ Repeated with the real FastAPI backend and `VITE_API_MODE=http`, using an isolat
 | Start dialog focuses safe cancellation, closes with Escape, and restores focus | Pass | Pass |
 | Backdated actual start; physical check required before readiness confirmation | Pass | Pass |
 | Collecting 51 of 50 ready gives a linked field error; collecting 6 succeeds | Pass | Pass |
+| Lost response after the server saves 6: retry sends the same key, amounts, and timestamp; only 6 are collected | Pass | Pass |
 | Legacy incomplete plan shows no completion time and explains the missing coverage | Pass | Pass |
 | Missing snapshot mix retains saved cost and explains unavailable mix details | Pass | Pass |
 | No horizontal page overflow or uncaught browser exceptions | Pass | Pass |
 
 The missing-settings response was also checked at 360 px: field-path errors list the required inputs and show no cost. The legacy warning checks used deliberately incomplete records in the isolated QA database. Automated regression coverage includes saved yields when changing mixes and legacy mock snapshots.
+
+After synchronizing Mohamad's merge `31a1143`, the HTTP workflow was repeated at both widths with a deliberately lost collection response. The retry succeeded without a duplicate collection. Four added regressions cover the full retry payload, a new payload after editing amounts, saved currency after a settings change, and the mock's clock tolerance without shortening curing. The integrated suites pass 79 backend tests and 75 frontend tests, including five real HTTP tests.

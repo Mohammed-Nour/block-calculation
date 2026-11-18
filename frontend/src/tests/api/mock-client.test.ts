@@ -127,6 +127,19 @@ describe('projects and estimates', () => {
     expect(fresh.estimates.at(-1)?.results.total_cost).toBe('745.20');
   });
 
+  it('keeps saved currency in project detail and list until explicitly repriced', async () => {
+    const saved = await estimated();
+    await configure({ version: 2, currency: 'USD' });
+    expect((await api.getProject(saved.project.id)).currency).toBe('RUB');
+    expect((await api.listProjects())[0]?.currency).toBe('RUB');
+    const repriced = await api.saveEstimate(saved.project.id, {
+      project_version: saved.project.version,
+      use_current_prices: true,
+    });
+    expect(repriced.currency).toBe('USD');
+    expect((await api.listProjects())[0]?.currency).toBe('USD');
+  });
+
   it('rejects a stale displayed preview and keeps existing-project preview prices', async () => {
     const preview = await api.calculateMaterials({
       full_quantity: 1700,
@@ -259,6 +272,41 @@ describe('production and collection', () => {
     if (!found) throw new Error(`missing run ${index}`);
     return found;
   };
+
+  it('allows two-minute clock skew without shortening the actual curing period', async () => {
+    clock = new Date(START);
+    const offset = (seconds: number) =>
+      new Date(clock.getTime() + seconds * 1000).toISOString();
+    await expect(
+      api.startRun(project.project.id, run(0).id, {
+        event_key: 'too-far-ahead',
+        started_at: offset(121),
+      }),
+    ).rejects.toMatchObject({ status: 422 });
+    project = await api.startRun(project.project.id, run(0).id, {
+      event_key: 'slightly-ahead',
+      started_at: offset(2),
+    });
+    clock = new Date(Date.parse(hours(48)) + 1000);
+    const payload = {
+      event_key: 'ready-skew',
+      ready_at: offset(120),
+      physically_checked: true,
+    };
+    await expect(
+      api.confirmRunReady(project.project.id, run(0).id, payload),
+    ).rejects.toMatchObject({ status: 422 });
+    clock = new Date(clock.getTime() + 1000);
+    project = await api.confirmRunReady(project.project.id, run(0).id, payload);
+    expect(project.balance.full.ready).toBe(5);
+    project = await api.recordCollection(project.project.id, {
+      event_key: 'collect-skew',
+      full_quantity: 1,
+      half_quantity: 0,
+      collected_at: offset(120),
+    });
+    expect(project.balance.full.collected).toBe(1);
+  });
 
   it('plans runs no larger than the mold count', () => {
     expect(project.project.status).toBe('planned');

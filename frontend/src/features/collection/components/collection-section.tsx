@@ -71,6 +71,7 @@ export function CollectionSection({ detail }: { detail: ProjectDetail }) {
                     min={0}
                     max={collectable(balance[size])}
                     step={1}
+                    disabled={form.isSaving}
                     inputMode="numeric"
                     value={form.amounts[size]}
                     onChange={(event) =>

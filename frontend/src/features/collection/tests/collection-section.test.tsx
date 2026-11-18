@@ -22,6 +22,55 @@ afterEach(() => {
 });
 
 describe('CollectionSection', () => {
+  it('retries the exact collection payload after a lost response', async () => {
+    const record = vi
+      .spyOn(api, 'recordCollection')
+      .mockRejectedValueOnce(new Error('Connection lost after saving'))
+      .mockResolvedValueOnce(detail);
+    vi.spyOn(Date.prototype, 'toISOString')
+      .mockReturnValueOnce('2026-11-18T10:00:00.000Z')
+      .mockReturnValueOnce('2026-11-18T10:00:01.000Z');
+    const user = userEvent.setup();
+    renderWithQuery(<CollectionSection detail={detail} />);
+    const full = screen.getByLabelText(/Full blocks collected now/);
+    await user.clear(full);
+    await user.type(full, '2');
+    const submit = screen.getByRole('button', { name: 'Record collection' });
+    await user.click(submit);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Connection lost',
+    );
+    await user.click(submit);
+    expect(await screen.findByText('Collection recorded')).toBeInTheDocument();
+    expect(record.mock.calls[1]).toEqual(record.mock.calls[0]);
+  });
+
+  it('uses a new key and timestamp when amounts change after a failure', async () => {
+    const record = vi
+      .spyOn(api, 'recordCollection')
+      .mockRejectedValueOnce(new Error('Connection lost'))
+      .mockResolvedValueOnce(detail);
+    vi.spyOn(Date.prototype, 'toISOString')
+      .mockReturnValueOnce('2026-11-18T10:00:00.000Z')
+      .mockReturnValueOnce('2026-11-18T10:00:01.000Z');
+    const user = userEvent.setup();
+    renderWithQuery(<CollectionSection detail={detail} />);
+    const full = screen.getByLabelText(/Full blocks collected now/);
+    await user.clear(full);
+    await user.type(full, '2');
+    await user.click(screen.getByRole('button', { name: 'Record collection' }));
+    await screen.findByRole('alert');
+    await user.clear(full);
+    await user.type(full, '3');
+    await user.click(screen.getByRole('button', { name: 'Record collection' }));
+    await screen.findByText('Collection recorded');
+    const first = record.mock.calls[0]?.[1];
+    const second = record.mock.calls[1]?.[1];
+    expect(second?.event_key).not.toBe(first?.event_key);
+    expect(second?.collected_at).not.toBe(first?.collected_at);
+    expect(second?.full_quantity).toBe(3);
+  });
+
   it('shows a failure that is not tied to a field', async () => {
     vi.spyOn(api, 'recordCollection').mockRejectedValueOnce(
       conflictError('This project changed. Reload it.', 3),

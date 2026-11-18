@@ -192,7 +192,8 @@ export function createMockApi({
           );
     return {
       project: structuredClone(project),
-      currency: state.settings.currency,
+      currency:
+        latestEstimate(state, id)?.results.currency ?? state.settings.currency,
       estimates: structuredClone(state.estimates[id] ?? []),
       runs,
       collections: structuredClone(collections),
@@ -203,10 +204,10 @@ export function createMockApi({
   }
 
   function listItem(state: MockState, project: Project): ProjectListItem {
-    const { forecast } = detail(state, project.id);
+    const { forecast, currency } = detail(state, project.id);
     return {
       ...structuredClone(project),
-      currency: state.settings.currency,
+      currency,
       // FR28: show a cost only while the latest estimate matches the order.
       latest_total_cost: estimateMatches(
         project,
@@ -583,7 +584,8 @@ export function createMockApi({
         }
         if (
           timeIssues.length === 0 &&
-          hoursBetween(run.started_at, ready_at) < CYCLE_HOURS
+          (hoursBetween(run.started_at, ready_at) < CYCLE_HOURS ||
+            hoursBetween(run.started_at, timestamp()) < CYCLE_HOURS)
         ) {
           issues.push({
             loc: ['body', 'ready_at'],
