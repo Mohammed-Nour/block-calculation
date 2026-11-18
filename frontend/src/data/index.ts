@@ -11,3 +11,7 @@ export {
   MS_PER_HOUR,
   PROJECT_NAME_MAX_LENGTH,
 } from '@/data/production.config';
+export {
+  PROJECT_STATUS_META,
+  STATUS_FILTER_ALL,
+} from '@/data/project-status.config';
