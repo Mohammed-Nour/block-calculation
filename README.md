@@ -2,17 +2,32 @@
 
 BlockCalc helps a small block-production team manage settings, estimate material costs, plan 48-hour mold cycles, and track production and collection.
 
+The project study in [`docs/requirements/`](docs/requirements/study.md) is the source of truth. Every feature, rule and acceptance check in the code traces back to it ([traceability](docs/requirements/traceability.md)).
+
+## Repository layout
+
+| Path | Contents | Owner |
+|---|---|---|
+| [`frontend/`](frontend/) | React + TanStack Router single-page app | Mohamad Nour |
+| [`backend/`](backend/) | API and database (see [API contract](docs/api/)) | Ali Hamdan |
+| [`docs/`](docs/) | Requirements, architecture, API contract, UX and process documents | Both |
+
 ## Team
 
 - Mohamad Nour — frontend
 - Ali Hamdan — backend and deployment
 
-## Run locally
+## Run the frontend
 
-\`\`\`bash
+```bash
+cd frontend
 pnpm install
 pnpm dev
-\`\`\`
+```
+
+## How we work
+
+Every change starts as a GitHub issue, is built on its own branch and lands through a reviewed pull request. See [docs/process/workflow.md](docs/process/workflow.md).
 
 ## First-release boundary
 
