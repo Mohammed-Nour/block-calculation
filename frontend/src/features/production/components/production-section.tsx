@@ -1,7 +1,6 @@
 import type { ProjectDetail } from '@/api';
 import { FormAlert } from '@/components/common';
 import {
-  Badge,
   Button,
   Card,
   CardContent,
@@ -9,27 +8,27 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui';
-import { BLOCK_SIZES } from '@/data';
-import { RUN_STATE_LABELS } from '@/features/production/data/run-state.config';
-import { ConfirmReadyDialog } from '@/features/production/components/confirm-ready-dialog';
 import { ForecastCard } from '@/features/production/components/forecast-card';
-import { StartRunDialog } from '@/features/production/components/start-run-dialog';
+import { RunRow } from '@/features/production/components/run-row';
 import { usePlanProduction } from '@/features/production/hooks/mutations/use-run-actions';
-import { canStartRun, runState } from '@/features/production/utils/run-state';
-import { formatDateTime, getErrorMessage } from '@/lib';
-
-const STATE_TONE = {
-  waiting: 'outline',
-  in_molds: 'default',
-  ready: 'success',
-  cancelled: 'destructive',
-} as const;
+import {
+  canStartRun,
+  runState,
+  runSummary,
+} from '@/features/production/utils/run-state';
+import { getErrorMessage } from '@/lib';
 
 /** UC06–UC08: forecast, the plan of runs, and recording their progress. */
 export function ProductionSection({ detail }: { detail: ProjectDetail }) {
   const { project, runs } = detail;
   const plan = usePlanProduction(project.id, project.version);
   const hasEstimate = detail.estimates.length > 0;
+  // The full plan can be dozens of runs; show only what needs a decision now.
+  const actionable = runs.filter(
+    (run) =>
+      runState(run) === 'in_molds' ||
+      (project.status !== 'cancelled' && canStartRun(run, runs)),
+  );
 
   return (
     <div className="grid gap-6">
@@ -68,46 +67,38 @@ export function ProductionSection({ detail }: { detail: ProjectDetail }) {
               <p className="text-sm text-muted-foreground">No runs.</p>
             )
           ) : (
-            <ol className="grid gap-2">
-              {runs.map((run, index) => {
-                const state = runState(run);
-                return (
-                  <li
-                    key={run.id}
-                    className="flex flex-col gap-2 rounded-md border p-3 sm:flex-row sm:items-center sm:justify-between"
-                  >
-                    <div className="grid gap-0.5">
-                      <span className="flex flex-wrap items-center gap-2 font-medium">
-                        Run {index + 1}: {run.quantity}{' '}
-                        {BLOCK_SIZES[run.block_size].label.toLowerCase()}
-                        <Badge variant={STATE_TONE[state]}>
-                          {RUN_STATE_LABELS[state]}
-                        </Badge>
-                      </span>
-                      <span className="text-sm text-muted-foreground">
-                        {state === 'ready'
-                          ? `Ready ${formatDateTime(run.ready_at)}`
-                          : state === 'cancelled'
-                            ? `Cancelled ${formatDateTime(run.cancelled_at)}`
-                            : `Expected ready ${formatDateTime(run.expected_ready_at)}`}
-                        {run.started_at
-                          ? ` · started ${formatDateTime(run.started_at)}`
-                          : ''}
-                      </span>
-                    </div>
-                    <div className="flex gap-2">
-                      {canStartRun(run, runs) &&
-                      project.status !== 'cancelled' ? (
-                        <StartRunDialog projectId={project.id} run={run} />
-                      ) : null}
-                      {state === 'in_molds' ? (
-                        <ConfirmReadyDialog projectId={project.id} run={run} />
-                      ) : null}
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
+            <>
+              <p className="text-sm text-muted-foreground">
+                {runSummary(runs)}
+              </p>
+              {actionable.length > 0 ? (
+                <ol className="grid gap-2" aria-label="Runs that need action">
+                  {actionable.map((run) => (
+                    <RunRow
+                      key={run.id}
+                      run={run}
+                      runs={runs}
+                      project={project}
+                    />
+                  ))}
+                </ol>
+              ) : null}
+              <details className="rounded-md border p-3">
+                <summary className="cursor-pointer font-medium">
+                  All {runs.length} runs
+                </summary>
+                <ol className="mt-3 grid gap-2">
+                  {runs.map((run) => (
+                    <RunRow
+                      key={run.id}
+                      run={run}
+                      runs={runs}
+                      project={project}
+                    />
+                  ))}
+                </ol>
+              </details>
+            </>
           )}
         </CardContent>
       </Card>
