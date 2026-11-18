@@ -10,7 +10,7 @@ Imports flow one way: **app → feature → shared**.
 |---|---|---|
 | app | `src/routes/` | One file per screen. Composes features through their barrels. |
 | feature | `src/features/<name>/` | Everything for one area of the study (settings, projects, estimates, production, collection). |
-| shared | `src/api`, `src/components`, `src/lib`, `src/data`, `src/schema`, `src/hooks` | Code any feature may use. It never imports a feature or a route. |
+| shared | `src/api`, `src/components`, `src/lib`, `src/data`, `src/schema`, `src/hooks` | Code any feature may use. It never imports a feature or a route. `src/api` holds the contract types, both clients and the shared query options. |
 
 Inside a feature, files go in the innermost layer that can hold them:
 
@@ -18,7 +18,7 @@ Inside a feature, files go in the innermost layer that can hold them:
 |---|---|---|
 | `types/`, `schema/` | Types and zod schemas | shared, model |
 | `data/` | Static values (`*.config.ts`) | + data |
-| `utils/` | Pure functions, such as the §8.3 and §8.4 calculation rules | + utils |
+| `utils/` | Pure functions, such as mapping API values for display | + utils |
 | `hooks/queries`, `hooks/mutations`, `hooks/` | React Query hooks and component logic | everything above |
 | `components/` | JSX only | everything above |
 | `tests/` | Tests for the feature | everything |
@@ -40,7 +40,7 @@ component ──mutation hook──▶ api client ──▶ invalidate the featu
 
 ## Calculation rules
 
-The backend owns the saved figures. The frontend keeps a copy of the §8.3 and §8.4 rules in feature `utils/` for previews and the mock API, tested against the study's worked examples (§8.5, AT03–AT09). Both copies must agree on those examples.
+The §8.3 and §8.4 rules live in `src/api/mock/rules/` as pure functions: a port of the backend's `blockcalc/calculation.py`, with exact decimal arithmetic so the figures match Python's `Decimal`. They sit in the mock because the mock plays the backend; screens display what the API returns and never recalculate saved figures. Tests in `src/tests/api/` reproduce the worked example and acceptance checks AT01–AT11 (NFR07). If the rules change, change the backend and the mock together and keep both test suites passing.
 
 ## Tooling
 
