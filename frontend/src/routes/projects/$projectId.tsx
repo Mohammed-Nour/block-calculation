@@ -3,6 +3,7 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { isApiError, projectQueryOptions } from '@/api';
 import { PageHeader } from '@/components/common';
+import { EstimateSection } from '@/features/estimates';
 
 export const Route = createFileRoute('/projects/$projectId')({
   loader: async ({ context, params }) => {
@@ -24,9 +25,12 @@ function ProjectPage() {
   const { projectId } = Route.useParams();
   const { data } = useSuspenseQuery(projectQueryOptions(Number(projectId)));
   return (
-    <PageHeader
-      title={data.project.name}
-      description={`Status: ${data.project.status}`}
-    />
+    <div className="grid gap-6">
+      <PageHeader
+        title={data.project.name}
+        description={`Status: ${data.project.status}`}
+      />
+      <EstimateSection detail={data} />
+    </div>
   );
 }
