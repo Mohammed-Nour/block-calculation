@@ -115,25 +115,32 @@ export function memoryStore(initial: MockState = emptyState()): MockStore {
  */
 export function browserStore(): MockStore {
   const fallback = memoryStore();
+  let storageWorks = true;
   return {
     load() {
+      if (!storageWorks) return fallback.load();
       try {
         const raw = window.localStorage.getItem(STORAGE_KEY);
         if (raw) {
           const parsed = JSON.parse(raw) as { schema?: unknown };
           if (parsed.schema === 1) return parsed as MockState;
         }
+        // Nothing stored yet (or an old schema): start fresh.
+        return emptyState();
       } catch {
-        // Unreadable storage: start from the fallback state.
+        // Unreadable storage: keep working in memory for this session.
+        storageWorks = false;
+        return fallback.load();
       }
-      return fallback.load();
     },
     save(state) {
       fallback.save(state);
+      if (!storageWorks) return;
       try {
         window.localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
       } catch {
         // Quota or privacy mode: keep the in-memory copy.
+        storageWorks = false;
       }
     },
   };
