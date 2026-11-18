@@ -2,19 +2,30 @@
 
 BlockCalc helps a small block-production team manage settings, estimate material costs, plan 48-hour mold cycles, and track production and collection.
 
+The project study in [`docs/requirements/`](docs/requirements/study.md) is the source of truth. Every feature, rule and acceptance check in the code traces back to it ([traceability](docs/requirements/traceability.md)).
+
+## Repository layout
+
+| Path | Contents | Owner |
+|---|---|---|
+| [`frontend/`](frontend/) | React + TanStack Router single-page app | Mohamad Nour |
+| [`backend/`](backend/) | API and database (see [API contract](docs/api/)) | Ali Hamdan |
+| [`docs/`](docs/) | Requirements, architecture, API contract, UX and process documents | Both |
+
 ## Team
 
 - Mohamad Nour — frontend
 - Ali Hamdan — backend and deployment
 
-## Run locally
-
-The frontend uses Node.js 24 and pnpm 11.25.0.
+## Run the frontend
 
 ```bash
+cd frontend
 pnpm install --frozen-lockfile
 pnpm dev
 ```
+
+## Run the backend
 
 The backend uses Python 3.12, SQLite 3.38 or newer, and uv. In a second terminal, run from the repository root.
 
@@ -66,7 +77,11 @@ An update includes all draft fields and the last read `version`. Changing quanti
 | `BLOCKCALC_DB_PATH` | `backend/data/blockcalc.sqlite3` | SQLite database path. Relative overrides resolve from the server's working directory. |
 | `BLOCKCALC_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated frontend origins. Set it to an empty string for same-origin use. |
 
-The Settings API requires no credentials. CI runs on pull requests and on pushes to `main`. Run the checks locally with `pnpm build` from the root and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
+The Settings API requires no credentials. CI runs on pull requests and on pushes to `main`. Run the checks locally with `pnpm check` and `pnpm build` from `frontend/` and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
+
+## How we work
+
+Every change starts as a GitHub issue, is built on its own branch and lands through a reviewed pull request. See [docs/process/workflow.md](docs/process/workflow.md).
 
 ## First-release boundary
 
