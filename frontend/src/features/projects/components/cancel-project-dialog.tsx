@@ -31,8 +31,18 @@ export function CancelProjectDialog({ project }: { project: Project }) {
     cancel.mutate(reason.trim(), { onSuccess: () => setOpen(false) });
   }
 
+  /** Closing the dialog drops the draft reason and any old error. */
+  function changeOpen(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setReason('');
+      setTouched(false);
+      cancel.reset();
+    }
+  }
+
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
+    <AlertDialog open={open} onOpenChange={changeOpen}>
       <AlertDialogTrigger asChild>
         <Button variant="destructive">Cancel project</Button>
       </AlertDialogTrigger>

@@ -1,18 +1,31 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { projectQueryOptions, settingsQueryOptions } from '@/api';
+import type { ProjectStatus } from '@/api';
 import { PageHeader } from '@/components/common';
 import { ProjectForm } from '@/features/projects';
 
+const CLOSED_STATUSES: readonly ProjectStatus[] = ['collected', 'cancelled'];
+
 export const Route = createFileRoute('/projects/$projectId_/edit')({
-  loader: ({ context, params }) =>
-    Promise.all([
+  loader: async ({ context, params }) => {
+    const [, detail] = await Promise.all([
       context.queryClient.ensureQueryData(settingsQueryOptions()),
       context.queryClient.ensureQueryData(
         projectQueryOptions(Number(params.projectId)),
       ),
-    ]),
+    ]);
+    // A closed project has nothing left to edit; show its summary instead.
+    if (CLOSED_STATUSES.includes(detail.project.status)) {
+      // TanStack Router control flow: `redirect` is thrown by design.
+      // eslint-disable-next-line @typescript-eslint/only-throw-error
+      throw redirect({
+        to: '/projects/$projectId',
+        params: { projectId: params.projectId },
+      });
+    }
+  },
   component: EditProjectPage,
 });
 

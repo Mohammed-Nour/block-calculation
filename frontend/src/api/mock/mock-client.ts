@@ -35,6 +35,7 @@ import type { Quantities } from '@/api/mock/rules/production';
 import {
   validateCollection,
   validateProject,
+  validateEventTime,
   validateSettings,
 } from '@/api/mock/rules/validation';
 import { CYCLE_HOURS } from '@/data';
@@ -130,7 +131,7 @@ export function createMockApi({
 
   /** Recompute status after any change and bump the version (FR32). */
   function touch(state: MockState, project: Project) {
-    const runs = withExpectedTimes(state.runs[project.id] ?? []);
+    const runs = withExpectedTimes(state.runs[project.id] ?? [], timestamp());
     const balance = balances(
       quantities(project),
       runs,
@@ -174,7 +175,7 @@ export function createMockApi({
 
   function detail(state: MockState, id: number): ProjectDetail {
     const project = findProject(state, id);
-    const runs = withExpectedTimes(state.runs[id] ?? []);
+    const runs = withExpectedTimes(state.runs[id] ?? [], timestamp());
     const collections = state.collections[id] ?? [];
     const forecast =
       runs.length > 0
@@ -206,8 +207,13 @@ export function createMockApi({
     return {
       ...structuredClone(project),
       currency: state.settings.currency,
-      latest_total_cost:
-        latestEstimate(state, project.id)?.results.total_cost ?? null,
+      // FR28: show a cost only while the latest estimate matches the order.
+      latest_total_cost: estimateMatches(
+        project,
+        latestEstimate(state, project.id),
+      )
+        ? (latestEstimate(state, project.id)?.results.total_cost ?? null)
+        : null,
       expected_ready_at: forecast?.expected_ready_at ?? null,
     };
   }
@@ -513,6 +519,28 @@ export function createMockApi({
             project.version,
           );
         }
+        const startIssues = validateEventTime(
+          'started_at',
+          started_at,
+          now(),
+          'start',
+        );
+        // FR22: the molds are free only once the previous run was ready.
+        const overlap = (state.runs[id] ?? []).find(
+          (other) =>
+            other.block_size === run.block_size &&
+            other.ready_at !== null &&
+            startIssues.length === 0 &&
+            Date.parse(other.ready_at) > Date.parse(started_at),
+        );
+        if (overlap?.ready_at) {
+          startIssues.push({
+            loc: ['body', 'started_at'],
+            msg: `The ${sizeLabel(run.block_size)} molds were in use until ${overlap.ready_at}. Choose a later start time.`,
+            type: 'value_error',
+          });
+        }
+        if (startIssues.length > 0) throw validationError(startIssues);
         run.started_at = started_at;
         record(
           state,
@@ -539,7 +567,13 @@ export function createMockApi({
             'This run is already confirmed ready.',
             project.version,
           );
-        const issues = [];
+        const timeIssues = validateEventTime(
+          'ready_at',
+          ready_at,
+          now(),
+          'ready',
+        );
+        const issues = [...timeIssues];
         if (!physically_checked) {
           issues.push({
             loc: ['body', 'physically_checked'],
@@ -547,7 +581,10 @@ export function createMockApi({
             type: 'value_error',
           });
         }
-        if (hoursBetween(run.started_at, ready_at) < CYCLE_HOURS) {
+        if (
+          timeIssues.length === 0 &&
+          hoursBetween(run.started_at, ready_at) < CYCLE_HOURS
+        ) {
           issues.push({
             loc: ['body', 'ready_at'],
             msg: `A run can be confirmed only ${CYCLE_HOURS} hours after it started`,
@@ -570,7 +607,15 @@ export function createMockApi({
       write((state) => {
         const project = findProject(state, id);
         if (seenEvent(state, id, input.event_key)) return detail(state, id);
-        const issues = validateCollection(input, detail(state, id).balance);
+        const issues = [
+          ...validateCollection(input, detail(state, id).balance),
+          ...validateEventTime(
+            'collected_at',
+            input.collected_at,
+            now(),
+            'collection',
+          ),
+        ];
         if (issues.length > 0) throw validationError(issues);
         const collections = (state.collections[id] ??= []);
         collections.push({

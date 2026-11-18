@@ -12,7 +12,7 @@ import {
 import { BLOCK_SIZES, BLOCK_SIZE_ORDER } from '@/data';
 import { useCollectionForm } from '@/features/collection/hooks/use-collection-form';
 import { collectable } from '@/features/collection/utils/collection-balance';
-import { formatCount, formatDateTime } from '@/lib';
+import { formatCount, formatDateTime, getErrorMessage } from '@/lib';
 
 /** UC09: record partial collections within the ready balance (FR25, FR26). */
 export function CollectionSection({ detail }: { detail: ProjectDetail }) {
@@ -80,6 +80,11 @@ export function CollectionSection({ detail }: { detail: ProjectDetail }) {
                 </FormField>
               ))}
             </div>
+            {form.requestError ? (
+              <FormAlert tone="error" title="The collection was not recorded">
+                {getErrorMessage(form.requestError, 'Try again.')}
+              </FormAlert>
+            ) : null}
             {form.isSaved ? (
               <FormAlert tone="success" title="Collection recorded" />
             ) : null}

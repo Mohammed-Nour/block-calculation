@@ -182,8 +182,20 @@ export function validateCollection(
   if (input.full_quantity + input.half_quantity === 0) {
     issues.push(issue(['full_quantity'], 'Collect at least one block'));
   }
-  if (Number.isNaN(Date.parse(input.collected_at))) {
-    issues.push(issue(['collected_at'], 'Enter the collection time'));
-  }
   return issues;
+}
+
+/** UC07–UC09: an event time must be a real time that has already happened. */
+export function validateEventTime(
+  field: string,
+  value: string,
+  now: Date,
+  label: string,
+): ValidationIssue[] {
+  const time = Date.parse(value);
+  if (Number.isNaN(time)) return [issue([field], `Enter the ${label} time`)];
+  if (time > now.getTime()) {
+    return [issue([field], `The ${label} time cannot be in the future`)];
+  }
+  return [];
 }

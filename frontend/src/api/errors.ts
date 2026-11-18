@@ -32,7 +32,9 @@ function apiErrorMessage(detail: ApiErrorDetail): string {
   if (Array.isArray(detail)) {
     return detail.map((issue) => issue.msg).join('. ') || 'Invalid input';
   }
-  return detail.message;
+  return typeof detail.message === 'string' && detail.message
+    ? detail.message
+    : 'The request failed';
 }
 
 export function isApiError(error: unknown): error is ApiError {

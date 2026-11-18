@@ -20,6 +20,11 @@ export function useCollectionForm(detail: ProjectDetail) {
   function setAmount(size: BlockSize, value: string) {
     setAmounts((current) => ({ ...current, [size]: value }));
     setErrors((current) => ({ ...current, [size]: undefined }));
+    if (record.isPending) return;
+    // Different amounts after a failure are a new attempt, not a retry.
+    if (record.isError) setEventKey(newEventKey());
+    // Editing starts the next entry: drop the old success or error message.
+    record.reset();
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -53,6 +58,10 @@ export function useCollectionForm(detail: ProjectDetail) {
     submit,
     isSaving: record.isPending,
     isSaved: record.isSuccess,
-    error: record.error,
+    /** A failure not tied to one field (conflict, network, server). */
+    requestError:
+      record.isError && !server.full_quantity && !server.half_quantity
+        ? record.error
+        : null,
   };
 }

@@ -251,6 +251,7 @@ describe('production and collection', () => {
     project = await api.planProduction(project.project.id, {
       project_version: project.project.version,
     });
+    clock = new Date(hours(200));
   });
 
   const run = (index: number) => {
@@ -300,6 +301,70 @@ describe('production and collection', () => {
     });
     expect(project.project.status).toBe('partially_ready');
     expect(project.balance.full.ready).toBe(5);
+  });
+
+  it('UC07–UC09: rejects event times that are invalid or in the future', async () => {
+    const future = await rejection(
+      api.startRun(project.project.id, run(0).id, {
+        event_key: 'start-future',
+        started_at: hours(201),
+      }),
+    );
+    expect(future.status).toBe(422);
+    const invalid = await rejection(
+      api.startRun(project.project.id, run(0).id, {
+        event_key: 'start-invalid',
+        started_at: 'not a time',
+      }),
+    );
+    expect(invalid.status).toBe(422);
+    project = await api.startRun(project.project.id, run(0).id, {
+      event_key: 'start-1',
+      started_at: START,
+    });
+    const ready = await rejection(
+      api.confirmRunReady(project.project.id, run(0).id, {
+        event_key: 'ready-future',
+        ready_at: hours(300),
+        physically_checked: true,
+      }),
+    );
+    expect(ready.status).toBe(422);
+  });
+
+  it('FR22: a run cannot start before the previous run was ready', async () => {
+    project = await api.startRun(project.project.id, run(0).id, {
+      event_key: 's1',
+      started_at: START,
+    });
+    project = await api.confirmRunReady(project.project.id, run(0).id, {
+      event_key: 'r1',
+      ready_at: hours(60),
+      physically_checked: true,
+    });
+    const overlap = await rejection(
+      api.startRun(project.project.id, run(1).id, {
+        event_key: 's2-early',
+        started_at: hours(50),
+      }),
+    );
+    expect(overlap.status).toBe(422);
+    project = await api.startRun(project.project.id, run(1).id, {
+      event_key: 's2',
+      started_at: hours(60),
+    });
+    expect(project.runs[1]?.started_at).toBe(hours(60));
+  });
+
+  it('SC05: an overdue active run moves the forecast to now', async () => {
+    project = await api.startRun(project.project.id, run(0).id, {
+      event_key: 's1',
+      started_at: START,
+    });
+    clock = new Date(hours(80));
+    project = await api.getProject(project.project.id);
+    expect(project.runs[0]?.expected_ready_at).toBe(hours(80));
+    expect(project.runs[1]?.expected_ready_at).toBe(hours(128));
   });
 
   it('AT09 and AT11: collects within the balance and counts repeats once', async () => {

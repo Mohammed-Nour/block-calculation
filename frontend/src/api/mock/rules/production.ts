@@ -114,9 +114,11 @@ export function planRuns(
  * Expected ready time of each run. Runs of one size follow each other, so a
  * run that is not started yet begins when the previous one is (or is expected
  * to be) ready. A delay therefore moves only this project's later runs (FR24).
+ * Pass `now` so an overdue active run pushes the forecast forward (SC05).
  */
 export function withExpectedTimes(
   runs: Omit<ProductionRun, 'expected_ready_at'>[],
+  now?: Timestamp,
 ): ProductionRun[] {
   const previousEnd: Partial<Record<BlockSize, Timestamp>> = {};
   return runs.map((run) => {
@@ -129,7 +131,17 @@ export function withExpectedTimes(
       (earliest && Date.parse(earliest) > Date.parse(run.planned_start_at)
         ? earliest
         : run.planned_start_at);
-    const expected = run.ready_at ?? addCycles(start, 1);
+    let expected = run.ready_at ?? addCycles(start, 1);
+    // SC05: a started run that is overdue stays active, so it is expected no
+    // earlier than now and the later runs move with it.
+    if (
+      run.ready_at === null &&
+      run.started_at !== null &&
+      now !== undefined &&
+      Date.parse(now) > Date.parse(expected)
+    ) {
+      expected = now;
+    }
     previousEnd[run.block_size] = expected;
     return { ...run, expected_ready_at: expected };
   });
