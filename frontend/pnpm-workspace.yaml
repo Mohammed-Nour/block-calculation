@@ -9,3 +9,13 @@ trustPolicy: no-downgrade
 trustPolicyExclude:
   - 'semver@6.3.1'
   - 'follow-redirects@1.16.2'
+
+# Both advisories reach only lint and dev-server tooling (eslint-plugin-import-x,
+# typescript-estree, devtools-vite, micromatch in lint-staged); none is in the
+# production bundle, and every glob they evaluate comes from repo config, not
+# user input. picomatch has no patched release yet. Review on each dependency
+# update and remove an entry once a fixed version is available. Reviewed 2026-11-18.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-g3hv-75wg-m249
+    - GHSA-fc5q-39xc-vjpf
