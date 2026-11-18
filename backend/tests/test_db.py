@@ -21,7 +21,7 @@ class MigrationTests(unittest.TestCase):
         migrate(self.path)
 
         with transaction(self.path) as db:
-            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 1)
+            self.assertEqual(db.execute("PRAGMA user_version").fetchone()[0], 2)
             self.assertEqual(db.execute("PRAGMA foreign_key_check").fetchall(), [])
             self.assertEqual(db.execute("SELECT full_molds FROM settings").fetchone()[0], 20)
             self.assertEqual(db.execute("SELECT full_yield FROM mixes WHERE id = 2").fetchone()[0], 35)

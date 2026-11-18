@@ -100,7 +100,10 @@ def _latest_estimate(connection: sqlite3.Connection, project_id: int) -> Estimat
 
 
 def read_project(connection: sqlite3.Connection, project_id: int) -> ProjectRead:
-    row = connection.execute("SELECT * FROM projects WHERE id = ?", (project_id,)).fetchone()
+    row = connection.execute("""
+        SELECT id, name, requested_start_at, full_quantity, half_quantity, mix_id,
+               status, version, created_at, updated_at FROM projects WHERE id = ?
+    """, (project_id,)).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Project not found")
     latest = _latest_estimate(connection, project_id)
@@ -221,6 +224,7 @@ def update_project(project_id: ProjectId, update: ProjectUpdate, path: DatabaseP
             WHERE id = :id
         """, values)
         if order_changed or update.requested_start_at != project.requested_start_at:
+            connection.execute("UPDATE projects SET production_plan_json = NULL WHERE id = ?", (project_id,))
             connection.execute("""
                 UPDATE production_runs SET cancelled_at = strftime('%Y-%m-%dT%H:%M:%fZ', 'now')
                 WHERE project_id = ? AND started_at IS NULL AND cancelled_at IS NULL

@@ -3,6 +3,7 @@ import axios, { isAxiosError } from 'axios';
 import type { BlockCalcApi } from '@/api/client';
 import { ApiError } from '@/api/errors';
 import type { ApiErrorDetail } from '@/api/errors';
+import type { ProjectDetail } from '@/api/types';
 
 const TIMEOUT_MS = 10_000;
 
@@ -31,17 +32,47 @@ export function createHttpApi(baseURL: string): BlockCalcApi {
     }
   }
 
+  const getProject = (id: number): Promise<ProjectDetail> =>
+    call(http.get(`/api/projects/${id}/production`));
+
   return {
     getSettings: () => call(http.get('/api/settings')),
     updateSettings: (update) => call(http.put('/api/settings', update)),
     calculateMaterials: (order) => call(http.post('/api/calculations', order)),
     listProjects: (status) =>
-      call(http.get('/api/projects', { params: status ? { status } : {} })),
-    getProject: (id) => call(http.get(`/api/projects/${id}`)),
-    createProject: (input) => call(http.post('/api/projects', input)),
-    updateProject: (id, input) => call(http.put(`/api/projects/${id}`, input)),
-    saveEstimate: (id, input) =>
-      call(http.post(`/api/projects/${id}/estimates`, input)),
+      call(
+        http.get('/api/projects/summaries', {
+          params: status ? { status } : {},
+        }),
+      ),
+    getProject,
+    createProject: async (input) => {
+      const project = await call<{ id: number }>(
+        http.post('/api/projects', input),
+      );
+      return getProject(project.id);
+    },
+    updateProject: async (id, input) => {
+      await call(http.put(`/api/projects/${id}`, input));
+      return getProject(id);
+    },
+    saveEstimate: async (id, input) => {
+      const request = {
+        version: input.project_version,
+        use_current_prices: input.use_current_prices,
+        confirm_recalculation: input.use_current_prices,
+      };
+      const preview = await call<{ settings_version: number }>(
+        http.post(`/api/projects/${id}/calculate`, request),
+      );
+      await call(
+        http.post(`/api/projects/${id}/estimates`, {
+          ...request,
+          settings_version: preview.settings_version,
+        }),
+      );
+      return getProject(id);
+    },
     planProduction: (id, input) =>
       call(http.post(`/api/projects/${id}/plan`, input)),
     startRun: (id, runId, input) =>
