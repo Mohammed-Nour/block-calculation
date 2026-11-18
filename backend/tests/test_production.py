@@ -547,3 +547,23 @@ class ProductionTests(unittest.TestCase):
         self.assertIsNotNone(detail["estimates"][-1]["results"]["total_cost"])
         self.post("/plan", {"project_version": detail["project"]["version"]}, 422)
         self.assertEqual(self.client.get(self.base + "/production").json()["runs"], [])
+
+    def test_entire_order_collected_after_cancellation_keeps_cancellation_history(self):
+        detail = self.prepare(10, 0)
+        run_id = detail["runs"][0]["id"]
+        self.start_run(run_id)
+        ready = self.ready_run(run_id)
+        cancelled = self.post(
+            "/cancel",
+            {
+                "project_version": ready["project"]["version"],
+                "reason": "Cancelled after curing",
+            },
+        )
+        self.assertEqual(cancelled["project"]["status"], "cancelled")
+        done = self.collect(10)
+        self.assertEqual(done["project"]["status"], "collected")
+        self.assertEqual(done["project"]["cancel_reason"], "Cancelled after curing")
+        self.assertTrue(
+            any(event["event_type"] == "project.cancelled" for event in done["history"])
+        )

@@ -56,7 +56,7 @@ Event keys are scoped to a project. Retrying the same event returns the current 
 
 Forecasts assume each project's molds are available independently. After planning, capacities come from the saved plan. Positive demand with zero matching molds has no completion time. Orders whose completion falls outside the supported calendar remain readable with an unavailable forecast; planning returns a validation error. A delay shifts the following matching runs in that project. The clock never automatically marks blocks ready.
 
-Collection is bounded by ready minus collected quantities for each size, including partial collections. Cancellation keeps active runs, cancels waiting work, preserves history, and allows collection from ready blocks. The cancelled status is retained.
+Collection is bounded by ready minus collected quantities for each size, including partial collections. Cancellation keeps active runs, cancels waiting work, preserves history, and allows collection from ready blocks. Partial collection retains the cancelled status. Collecting the entire requested order marks it Collected and keeps its cancellation history.
 
 `ProjectDetail`, `ProjectListItem`, `ProductionRun`, `Forecast`, and `MaterialCalculation` are defined in [the frontend types](../../frontend/src/api/types.ts). The generated schema below defines the backend wire representations.
 

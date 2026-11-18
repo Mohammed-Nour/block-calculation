@@ -420,10 +420,10 @@ def _finish(
     detail = project_detail(connection, project_id)
     status = detail.project.status
     sizes = list(detail.balance.values())
-    if status != "cancelled":
-        if all(item.collected == item.requested for item in sizes):
-            status = "collected"
-        elif all(item.ready == item.requested for item in sizes):
+    if all(item.collected == item.requested for item in sizes):
+        status = "collected"
+    elif status != "cancelled":
+        if all(item.ready == item.requested for item in sizes):
             status = "ready"
         elif any(item.ready for item in sizes):
             status = "partially_ready"
