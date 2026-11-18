@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .db import database_path, migrate
+from .projects import router as projects_router
 from .settings import router as settings_router
 
 
@@ -24,10 +25,11 @@ def create_app(path: Path | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[origin.strip() for origin in origins.split(",") if origin.strip()],
-        allow_methods=["GET", "PUT"],
+        allow_methods=["GET", "POST", "PUT"],
         allow_headers=["Content-Type"],
     )
     app.include_router(settings_router)
+    app.include_router(projects_router)
     return app
 
 
