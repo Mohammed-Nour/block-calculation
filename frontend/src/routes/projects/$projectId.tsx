@@ -3,7 +3,9 @@ import { useSuspenseQuery } from '@tanstack/react-query';
 
 import { isApiError, projectQueryOptions } from '@/api';
 import { PageHeader } from '@/components/common';
+import { CollectionSection } from '@/features/collection';
 import { EstimateSection } from '@/features/estimates';
+import { ProductionSection } from '@/features/production';
 import { ProjectHistory, ProjectOverview } from '@/features/projects';
 
 export const Route = createFileRoute('/projects/$projectId')({
@@ -30,6 +32,8 @@ function ProjectPage() {
       <PageHeader title={data.project.name} />
       <ProjectOverview detail={data} />
       <EstimateSection detail={data} />
+      <ProductionSection detail={data} />
+      {data.runs.length > 0 ? <CollectionSection detail={data} /> : null}
       <ProjectHistory events={data.history} />
     </div>
   );
