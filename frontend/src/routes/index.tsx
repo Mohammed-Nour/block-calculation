@@ -1,13 +1,9 @@
-import { createFileRoute } from '@tanstack/react-router';
+import { createFileRoute, redirect } from '@tanstack/react-router';
 
 export const Route = createFileRoute('/')({
-  component: HomePage,
+  beforeLoad: () => {
+    // TanStack Router control flow: `redirect` is thrown by design.
+    // eslint-disable-next-line @typescript-eslint/only-throw-error
+    throw redirect({ to: '/projects', replace: true });
+  },
 });
-
-function HomePage() {
-  return (
-    <main className="bl-container bl-section">
-      <h1 className="text-3xl font-semibold">BlockCalc</h1>
-    </main>
-  );
-}
