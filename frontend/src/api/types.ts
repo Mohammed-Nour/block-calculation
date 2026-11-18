@@ -91,6 +91,15 @@ export interface MaterialCalculation {
   total_cost: DecimalString;
 }
 
+export interface CalculationInput extends MaterialOrder {
+  /** Existing project whose saved calculation settings should be reused. */
+  project_id?: number;
+}
+
+export interface MaterialPreview extends MaterialCalculation {
+  settings_version?: number;
+}
+
 // ── Projects (proposed) ─────────────────────────────────────────────────────
 
 export interface ProjectInput {
@@ -119,7 +128,9 @@ export interface ProjectListItem extends Project {
 /** Everything an estimate used, so later Settings changes cannot alter it. */
 export interface EstimateInputs {
   order: MaterialOrder;
-  mix: Mix;
+  mix: Mix | null;
+  /** All recipes and yields saved with the revision; older mock records have only mix. */
+  mixes?: Mix[];
   settings: SettingsValues;
   settings_version: number;
 }
@@ -135,6 +146,8 @@ export interface EstimateSave {
   project_version: number;
   /** Re-price a revision with current Settings (§8.2). Requires confirmation in the UI. */
   use_current_prices: boolean;
+  /** Settings version used by a preview already shown to the User. */
+  settings_version?: number;
 }
 
 export interface ProductionRun {

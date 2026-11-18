@@ -68,7 +68,8 @@ export function ProjectOverview({ detail }: { detail: ProjectDetail }) {
               </Link>
             ) : (
               <p className="text-sm text-muted-foreground sm:self-center">
-                Quantities and mix are locked because production has started.
+                Quantities, mix, and production start are locked because
+                production has started.
               </p>
             )}
             {cancellable ? <CancelProjectDialog project={project} /> : null}

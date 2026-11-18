@@ -1,9 +1,28 @@
-# Backend
+# BlockCalc backend
 
-Owner: Ali Hamdan.
+The FastAPI service implements settings, project drafts, immutable material estimates, independent production forecasts, production runs, readiness, collections, cancellation, and audit history.
 
-The backend implements the HTTP API described in [`docs/api/openapi.yaml`](../docs/api/openapi.yaml) and the business rules in section 8 of the [project study](../docs/requirements/study.md).
+## Local setup
 
-Tracked in issues #3 (data model), #4 (settings API), #5 (CI), #8 (calculation service), #9 (projects and estimates API), #12 (production and collection API), #14 (integration tests) and #15 (staging).
+Use Python 3.12 and uv from the repository root.
 
-Until this service exists the frontend runs against an in-browser mock of the same contract (`VITE_API_MODE=mock`).
+```sh
+cd backend
+uv sync --locked --python 3.12
+uv run --locked uvicorn blockcalc.app:app --reload
+```
+
+Startup applies consecutive SQL migrations in a transaction. The default database is `backend/data/blockcalc.sqlite3`. Set `BLOCKCALC_DB_PATH` to an absolute file path for persistent deployment storage. `BLOCKCALC_CORS_ORIGINS` is a comma-separated list of browser origins, defaulting to `http://localhost:5173,http://127.0.0.1:5173`.
+
+The service exposes [interactive API documentation](http://127.0.0.1:8000/docs), `/openapi.json`, and `/health`. The health endpoint queries the database and returns `503` if it is unavailable. The first release records the single actor as `local-user`.
+
+## Verification
+
+```sh
+uv run --locked python -m unittest discover -s tests -v
+uv run --locked python -m blockcalc.export_openapi ../docs/api/openapi.yaml --check
+```
+
+From `frontend/`, run `BLOCKCALC_TEST_PYTHON=../backend/.venv/bin/python pnpm check` and `pnpm build`. The HTTP integration tests start an isolated FastAPI process and database and exercise the frontend's real HTTP client. Frontend CI installs both runtimes and runs those tests.
+
+See the [API contract](../docs/api/README.md) for request and response details, the [generated schema](../docs/api/openapi.yaml), and [staging operations](../docs/deployment/staging.md) for deployment, daily backups, restoration, and rollback.

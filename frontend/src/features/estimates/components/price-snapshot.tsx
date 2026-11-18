@@ -21,15 +21,18 @@ export function PriceSnapshot({ revision }: { revision: EstimateRevision }) {
     ],
     [
       'Yields',
-      `${mix.full_yield ?? '—'} full / ${mix.half_yield ?? '—'} half per batch`,
+      `${mix?.full_yield ?? '—'} full / ${mix?.half_yield ?? '—'} half per batch`,
     ],
   ];
   return (
     <div className="grid gap-2 text-sm">
       <p className="text-muted-foreground">
-        Saved {formatDateTime(revision.created_at)} with {mix.name} and these
-        inputs (prices per ton):
+        Saved {formatDateTime(revision.created_at)} with{' '}
+        {mix?.name ?? 'the selected mix'} and these inputs (prices per ton):
       </p>
+      {!mix ? (
+        <p role="status">Mix details are missing from this saved revision.</p>
+      ) : null}
       <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
         {rows.map(([label, value]) => (
           <div key={label} className="contents">

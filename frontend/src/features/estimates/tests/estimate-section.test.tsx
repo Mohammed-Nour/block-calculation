@@ -59,6 +59,16 @@ const total = () =>
   );
 
 describe('EstimateSection', () => {
+  it('shows saved cost and an explanation when snapshot mix details are missing', () => {
+    const revision = detail.estimates[0];
+    if (!revision) throw new Error('expected saved revision');
+    revision.inputs.mix = null;
+    renderSection();
+    expect(total()).toHaveTextContent('691.20 RUB');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Mix details are missing from this saved revision.',
+    );
+  });
   it('AT03 and AT05: shows the saved 691.20 RUB even after a price change', async () => {
     await configure('120');
     renderSection();

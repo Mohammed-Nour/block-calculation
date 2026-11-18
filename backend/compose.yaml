@@ -1,0 +1,17 @@
+name: blockcalc-staging
+services:
+  backend:
+    image: ${BLOCKCALC_IMAGE:-blockcalc-backend:staging}
+    build: .
+    restart: unless-stopped
+    ports:
+      - "${BLOCKCALC_BIND_ADDRESS:-127.0.0.1}:${BLOCKCALC_PORT:-18095}:8000"
+    environment:
+      BLOCKCALC_DB_PATH: /data/blockcalc.sqlite3
+      BLOCKCALC_CORS_ORIGINS: ${BLOCKCALC_CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+    volumes:
+      - data:/data
+      - backups:/backups
+volumes:
+  data:
+  backups:

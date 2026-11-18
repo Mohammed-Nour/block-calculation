@@ -1,8 +1,8 @@
 # API contract
 
-The contract between `frontend/` and `backend/`. The backend is FastAPI, so its live OpenAPI document at `/docs` (`/openapi.json`) is authoritative for every endpoint it has implemented. This page records the shared conventions and proposes the endpoints that do not exist yet, so both sides can build against the same shapes.
+The contract between `frontend/` and `backend/`. The backend is FastAPI, so its live OpenAPI document at `/docs` (`/openapi.json`) is authoritative for every endpoint it has implemented. This page records the shared conventions and records the implemented endpoints.
 
-The frontend's TypeScript version of this contract is [`frontend/src/api/types.ts`](../../frontend/src/api/types.ts) and [`client.ts`](../../frontend/src/api/client.ts). Until an endpoint exists, the in-browser mock (`frontend/src/api/mock/`) implements it with the same rules.
+The frontend's TypeScript version of this contract is [`frontend/src/api/types.ts`](../../frontend/src/api/types.ts) and [`client.ts`](../../frontend/src/api/client.ts). For offline frontend development, the in-browser mock (`frontend/src/api/mock/`) implements it with the same rules.
 
 ## Conventions
 
@@ -24,25 +24,43 @@ The frontend's TypeScript version of this contract is [`frontend/src/api/types.t
 
 Owned by #4 and implemented on `ali/backend-foundation`; see [backend README](../../backend/README.md). The read returns prices per ton, `currency`, `full_molds`, `half_molds`, kilograms per wheelbarrow and the four `mixes` with recipes and editable yields. The update sends every value plus `version`, `mix_yields` (one entry per mix) and `confirmed_zero_prices` for any newly zero price.
 
-## Proposed (frontend mock implements these; backend #8, #9, #12)
+## Implemented project and production endpoints
 
-| Method and path | Body | Returns | Rules |
-|---|---|---|---|
-| `POST /api/calculations` | `{ full_quantity, half_quantity, mix_id }` | `MaterialCalculation` | Preview with current Settings; saves nothing. Missing inputs return `422 { detail: { message, missing_fields } }` (FR10, FR14) |
-| `GET /api/projects?status=` | – | `ProjectListItem[]` | Newest first; optional status filter (FR27) |
-| `POST /api/projects` | `{ name, requested_start_at, full_quantity, half_quantity, mix_id }` | `ProjectDetail` | §8.2 validation; `mix_id` may be null for a draft (FR07) |
-| `GET /api/projects/{id}` | – | `ProjectDetail` | Estimates, runs, collections, balances, forecast and history (FR28) |
-| `PUT /api/projects/{id}` | project fields + `version` | `ProjectDetail` | Only `draft` or `planned`; a change to the order or mix clears the plan (FR08, FR18) |
-| `POST /api/projects/{id}/estimates` | `{ project_version, use_current_prices }` | `ProjectDetail` | Appends an immutable revision with all inputs; keeps the previous revision's prices unless `use_current_prices` (FR15–FR17) |
-| `POST /api/projects/{id}/plan` | `{ project_version }` | `ProjectDetail` | Needs an estimate for the current order and molds for every ordered size; splits each size into runs no larger than its mold count (FR19–FR22) |
-| `POST /api/projects/{id}/runs/{run_id}/start` | `{ event_key, started_at }` | `ProjectDetail` | One active run per size, so molds are never over-used (FR22) |
-| `POST /api/projects/{id}/runs/{run_id}/ready` | `{ event_key, ready_at, physically_checked }` | `ProjectDetail` | At least 48 hours after start and a physical check; later runs move with it (FR23, FR24) |
-| `POST /api/projects/{id}/collections` | `{ event_key, full_quantity, half_quantity, collected_at }` | `ProjectDetail` | Within ready minus collected for each size; marks the project `collected` when the whole order is collected (FR25, FR26) |
-| `POST /api/projects/{id}/cancel` | `{ project_version, reason }` | `ProjectDetail` | Cancels waiting runs, keeps active runs and history; rejected when `collected` (FR29, SC06) |
+| Method and path | Body | Returns |
+|---|---|---|
+| `POST /api/calculations` | full_quantity, half_quantity, mix_id, optional project_id | Material preview with settings_version; existing projects reuse their saved inputs |
+| `GET /api/projects?status=` | – | Paged project records with their current estimate; supports limit and offset |
+| `GET /api/projects/summaries?status=` | – | Frontend list items with saved currency, cost, and expected readiness |
+| `POST /api/projects` | Name, timezone-aware requested_start_at, full_quantity, half_quantity, optional mix_id | Project record |
+| `GET /api/projects/{id}` | – | Project record and current estimate |
+| `PUT /api/projects/{id}` | Project fields + version | Updated project record |
+| `POST /api/projects/{id}/calculate` | version, optional use_current_prices and confirm_recalculation | Preview with version, settings_version, inputs, result, price_source |
+| `POST /api/projects/{id}/estimates` | Preview options + settings_version | Updated project record with an immutable estimate revision |
+| `GET /api/projects/{id}/estimates` | – | Original revision history |
+| `GET /api/projects/{id}/estimates/{revision}` | – | Original saved inputs and result |
+| `GET /api/projects/{id}/production` | – | Frontend ProjectDetail with estimates, runs, collections, balances, forecast, history |
+| `POST /api/projects/{id}/plan` | project_version | ProjectDetail with a saved production plan |
+| `POST /api/projects/{id}/runs/{run_id}/start` | event_key, started_at | ProjectDetail |
+| `POST /api/projects/{id}/runs/{run_id}/ready` | event_key, ready_at, physically_checked | ProjectDetail |
+| `POST /api/projects/{id}/collections` | event_key, full_quantity, half_quantity, collected_at | ProjectDetail |
+| `POST /api/projects/{id}/cancel` | project_version, reason | ProjectDetail |
+| `GET /health` | – | Database health and schema version |
 
-`ProjectDetail`, `ProjectListItem`, `EstimateRevision`, `ProductionRun`, `Forecast` and `MaterialCalculation` are defined field by field in [`types.ts`](../../frontend/src/api/types.ts). `MaterialCalculation` matches `blockcalc/calculation.py`.
+The HTTP client adapts draft and estimate responses to the frontend interface. It previews an estimate and sends the returned settings version when saving, then reloads the production detail. Original revision endpoints use `inputs.project`, `inputs.settings`, and `result`; the production view exposes the frontend snapshot fields `inputs.order`, `inputs.mix`, `inputs.mixes`, `inputs.settings`, and `results`. `inputs.mixes` contains every saved mix so a different mix can be previewed using the same snapshot. `inputs.mix` is null if that revision lacks its selected mix; the saved result and history remain readable, and the UI explains the missing details. Legacy mock snapshots containing only `inputs.mix` can still use that mix; selecting an unavailable mix requires a confirmed recalculation with current settings.
 
-Status is derived from what has happened: `draft` → `planned` → `in_production` → `partially_ready` → `ready` → `collected`, or `cancelled` (§8.4).
+The first estimate uses current settings. Revisions reuse saved settings until both `use_current_prices` and `confirm_recalculation` are true. A changed project or calculation settings version returns 409. Calculation and planning validation returns `422 { detail: [{ loc, msg, type }] }`. Locations identify the request field (`["body", "mix_id"]`), configured input (`["settings", "full_molds"]`), or missing saved estimate (`["project", "estimate"]`). Missing calculation inputs use type `value_error.missing_calculation_input`, which the form maps to its settings guidance.
+
+The project form carries the displayed preview's settings version into its save. If settings change, the draft remains available and the estimate is rejected until the User calculates again. Retrying that form updates the same saved draft.
+
+Event keys are scoped to a project. Retrying the same event returns the current state; changing an already used key's payload returns 409. Replay comparisons normalize timestamps to UTC, including payloads saved by earlier releases, so equivalent timezone offsets represent the same operation. Event records retain the submitted offset. Timestamps may be at most 120 seconds ahead of the server to accommodate phone clock skew. Readiness still needs 48 elapsed hours from the recorded start on both the event timestamp and the server clock, plus a physical check.
+
+The collection form retains the entire request, including `collected_at`, after a network failure. An unchanged retry reuses that payload; editing the amounts begins a new operation with a new key and timestamp. Inputs are disabled while a collection is saving. Both clients retain a saved estimate's currency in project details and lists until the User explicitly recalculates with current settings.
+
+Forecasts assume each project's molds are available independently. After planning, capacities come from the saved plan. Positive demand with zero matching molds, or requested quantities not covered by uncancelled runs, has no completion time. The UI distinguishes missing molds from incomplete saved run coverage. Orders whose completion falls outside the supported calendar remain readable with an unavailable forecast; planning returns a validation error. Once any run starts, quantities, mix, and requested start time are locked; a rejected edit preserves all runs. A delay shifts the following matching runs in that project. The clock never automatically marks blocks ready.
+
+Collection is bounded by ready minus collected quantities for each size, including partial collections. Cancellation keeps active runs, cancels waiting work, preserves history, and allows collection from ready blocks. Partial collection retains the cancelled status. Collecting the entire requested order marks it Collected and keeps its cancellation history. See the [status decision and requirements rationale](../decisions/cancelled-order-collection.md).
+
+`ProjectDetail`, `ProjectListItem`, `ProductionRun`, `Forecast`, and `MaterialCalculation` are defined in [the frontend types](../../frontend/src/api/types.ts). The generated schema below defines the backend wire representations.
 
 ## Switching the frontend to the backend
 
@@ -53,3 +71,9 @@ VITE_API_BASE_URL=http://127.0.0.1:8000
 ```
 
 The backend's default `BLOCKCALC_CORS_ORIGINS` already allows the frontend dev server at `http://localhost:5173`.
+
+## Schema snapshot
+
+[openapi.yaml](openapi.yaml) is generated from the FastAPI application using JSON syntax, which is valid YAML. From `backend/`, regenerate it with `uv run --locked python -m blockcalc.export_openapi ../docs/api/openapi.yaml`. CI compares it with the application schema.
+
+Backend tests cover the worked examples, saved prices, revisions, capacity limits, duplicate events, concurrent collections, cancellation, rollback, and backup restoration. The frontend HTTP integration suite runs against an isolated real FastAPI process.

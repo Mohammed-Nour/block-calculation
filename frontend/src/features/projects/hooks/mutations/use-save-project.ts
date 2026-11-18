@@ -8,21 +8,22 @@ interface SaveProjectArgs {
   input: ProjectInput;
   /** The project being edited; absent when creating. */
   existing?: Project;
-  /**
-   * Also save the displayed estimate (FR15). The preview uses the current
-   * Settings, so the revision is saved with those prices.
-   */
+  /** Also save an estimate revision from the displayed preview (FR15). */
   withEstimate: boolean;
+  settingsVersion?: number;
 }
 
-/** Create or update a draft, then save the displayed estimate if there is one. */
+/** Create or update a draft, then save an optional estimate revision. */
 export function useSaveProject() {
   const queryClient = useQueryClient();
-  // NFR04: once the draft is saved, a retry after a failed estimate updates
-  // that draft instead of creating a second project.
   const persisted = useRef<Project | undefined>(undefined);
   return useMutation({
-    mutationFn: async ({ input, existing, withEstimate }: SaveProjectArgs) => {
+    mutationFn: async ({
+      input,
+      existing,
+      withEstimate,
+      settingsVersion,
+    }: SaveProjectArgs) => {
       const current = persisted.current ?? existing;
       let detail: ProjectDetail = current
         ? await api.updateProject(current.id, {
@@ -36,7 +37,8 @@ export function useSaveProject() {
       if (withEstimate) {
         detail = await api.saveEstimate(detail.project.id, {
           project_version: detail.project.version,
-          use_current_prices: true,
+          use_current_prices: false,
+          settings_version: settingsVersion,
         });
         persisted.current = detail.project;
       }

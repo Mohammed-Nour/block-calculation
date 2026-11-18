@@ -1,9 +1,9 @@
 import type {
   CancelProject,
+  CalculationInput,
   CollectionInput,
   EstimateSave,
-  MaterialCalculation,
-  MaterialOrder,
+  MaterialPreview,
   PlanProduction,
   ProjectDetail,
   ProjectInput,
@@ -24,8 +24,8 @@ export interface BlockCalcApi {
   getSettings: () => Promise<Settings>;
   updateSettings: (update: SettingsUpdate) => Promise<Settings>;
 
-  /** Stateless preview with the current Settings; saves nothing. */
-  calculateMaterials: (order: MaterialOrder) => Promise<MaterialCalculation>;
+  /** Preview a new order or reuse an existing project's saved settings. */
+  calculateMaterials: (order: CalculationInput) => Promise<MaterialPreview>;
 
   listProjects: (status?: ProjectStatus) => Promise<ProjectListItem[]>;
   getProject: (id: number) => Promise<ProjectDetail>;

@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 
-import { getFieldErrors } from '@/api';
+import { getFieldErrors, isApiError } from '@/api';
 import type { Project } from '@/api';
 import { MIX_REQUIRED_MESSAGE } from '@/features/projects/data/settings-field-labels.config';
 import { useCalculationPreview } from '@/features/projects/hooks/mutations/use-calculation-preview';
@@ -62,7 +62,7 @@ export function useProjectForm(existing?: Project) {
         ?.focus();
     }
     if (found.full_quantity || found.half_quantity || found.mix_id) return;
-    preview.mutate(toOrder(values));
+    preview.mutate({ ...toOrder(values), project_id: existing?.id });
   }
 
   function submit(event: FormEvent<HTMLFormElement>) {
@@ -75,8 +75,12 @@ export function useProjectForm(existing?: Project) {
         input: toProjectInput(values),
         existing,
         withEstimate: preview.isSuccess,
+        settingsVersion: preview.data?.settings_version,
       },
       {
+        onError: (error) => {
+          if (isApiError(error) && error.status === 409) preview.reset();
+        },
         onSuccess: (detail) =>
           void navigate({
             to: '/projects/$projectId',

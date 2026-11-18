@@ -12,6 +12,7 @@ import {
 } from '@/api/mock/rules/materials';
 import {
   forecastOrder,
+  forecastRuns,
   hoursBetween,
   planRuns,
   withExpectedTimes,
@@ -119,6 +120,26 @@ describe('material calculation (§8.3)', () => {
 });
 
 describe('completion forecast (§8.4)', () => {
+  it('leaves completion unavailable when saved runs cover only part of an order', () => {
+    const runs = withExpectedTimes(
+      planRuns(START, { full: 120, half: 0 }, { full: 50, half: 0 }, 1).map(
+        (run, index) => ({
+          ...run,
+          id: index + 1,
+          cancelled_at: index > 0 ? START : null,
+        }),
+      ),
+    );
+    const forecast = forecastRuns(
+      START,
+      runs,
+      { full: 120, half: 0 },
+      { full: 50, half: 0 },
+    );
+    expect(forecast.expected_ready_at).toBeNull();
+    expect(forecast.duration_hours).toBeNull();
+    expect(forecast.untimed_sizes).toEqual(['full']);
+  });
   it('AT03: 34 full and 20 half cycles take 1632 hours', () => {
     const forecast = forecastOrder(
       START,

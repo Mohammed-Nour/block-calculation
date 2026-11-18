@@ -23,6 +23,7 @@ export function ProductionSection({ detail }: { detail: ProjectDetail }) {
   const { project, runs } = detail;
   const plan = usePlanProduction(project.id, project.version);
   const hasEstimate = detail.estimates.length > 0;
+  const hasLiveRuns = runs.some((run) => run.cancelled_at === null);
   // The full plan can be dozens of runs; show only what needs a decision now.
   const actionable = runs.filter(
     (run) =>
@@ -42,8 +43,8 @@ export function ProductionSection({ detail }: { detail: ProjectDetail }) {
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {runs.length === 0 ? (
-            project.status === 'draft' ? (
+          {!hasLiveRuns ? (
+            project.status === 'draft' || project.status === 'planned' ? (
               <div className="grid gap-3">
                 <p className="text-sm text-muted-foreground">
                   {hasEstimate

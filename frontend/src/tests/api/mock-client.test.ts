@@ -140,6 +140,35 @@ describe('projects and estimates', () => {
     expect((await api.listProjects())[0]?.currency).toBe('USD');
   });
 
+  it('rejects a stale displayed preview and keeps existing-project preview prices', async () => {
+    const preview = await api.calculateMaterials({
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 2,
+    });
+    const saved = await estimated();
+    await configure({ version: 2, cement_price_per_ton: '120' });
+    const editPreview = await api.calculateMaterials({
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 2,
+      project_id: saved.project.id,
+    });
+    expect(editPreview.total_cost).toBe('691.20');
+    expect(editPreview.settings_version).toBe(preview.settings_version);
+    const created = await draft();
+    await expect(
+      api.saveEstimate(created.project.id, {
+        project_version: created.project.version,
+        use_current_prices: false,
+        settings_version: preview.settings_version,
+      }),
+    ).rejects.toMatchObject({ status: 409 });
+    expect((await api.getProject(created.project.id)).estimates).toHaveLength(
+      0,
+    );
+  });
+
   it('FR17: a revision keeps the previous one and its prices by default', async () => {
     const saved = await estimated();
     await configure({ version: 2, cement_price_per_ton: '120' });
@@ -156,6 +185,62 @@ describe('projects and estimates', () => {
       use_current_prices: true,
     });
     expect(repriced.estimates.at(-1)?.results.total_cost).toBe('745.20');
+  });
+
+  it('keeps every saved mix when previewing and revising with a different mix', async () => {
+    const saved = await estimated();
+    await configure({
+      version: 2,
+      mix_yields: ([1, 2, 3, 4] as const).map((id) => ({
+        id,
+        full_yield: 100,
+        half_yield: 100,
+      })),
+    });
+    const preview = await api.calculateMaterials({
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 1,
+      project_id: saved.project.id,
+    });
+    expect(preview.total_cost).toBe('688.00');
+    const edited = await api.updateProject(saved.project.id, {
+      ...saved.project,
+      mix_id: 1,
+      version: saved.project.version,
+    });
+    const revised = await api.saveEstimate(saved.project.id, {
+      project_version: edited.project.version,
+      use_current_prices: false,
+    });
+    expect(revised.estimates.at(-1)?.results.total_cost).toBe('688.00');
+    expect(revised.estimates.at(-1)?.inputs.mixes).toHaveLength(4);
+  });
+
+  it('keeps legacy snapshots usable and reports unavailable mixes without current yields', async () => {
+    const store = memoryStore();
+    api = createMockApi({ store, now: () => clock });
+    await configure();
+    const saved = await estimated();
+    const state = store.load();
+    const revision = state.estimates[saved.project.id]?.[0];
+    if (!revision) throw new Error('expected saved revision');
+    delete revision.inputs.mixes;
+    store.save(state);
+    const order = {
+      full_quantity: 1700,
+      half_quantity: 300,
+      mix_id: 2 as const,
+      project_id: saved.project.id,
+    };
+    expect((await api.calculateMaterials(order)).total_cost).toBe('691.20');
+    const error = await rejection(
+      api.calculateMaterials({ ...order, mix_id: 1 }),
+    );
+    expect(error.status).toBe(422);
+    expect(error.detail).toEqual([
+      expect.objectContaining({ loc: ['body', 'mix_id'] }),
+    ]);
   });
 
   it('AT11: rejects an edit from a stale version', async () => {

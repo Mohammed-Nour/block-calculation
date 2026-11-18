@@ -14,6 +14,10 @@ import { formatCount, formatDateTime, formatHours } from '@/lib';
 
 /** UC06, FR19–FR21: expected ready time from the matching mold counts. */
 export function ForecastCard({ forecast }: { forecast: Forecast | null }) {
+  const missingMolds =
+    forecast?.untimed_sizes.filter((size) => forecast[size].molds === 0) ?? [];
+  const incompletePlan =
+    forecast?.untimed_sizes.filter((size) => forecast[size].molds > 0) ?? [];
   return (
     <Card>
       <CardHeader>
@@ -28,10 +32,10 @@ export function ForecastCard({ forecast }: { forecast: Forecast | null }) {
           <p className="text-sm text-muted-foreground">No forecast yet.</p>
         ) : (
           <>
-            {forecast.untimed_sizes.length > 0 ? (
+            {missingMolds.length > 0 ? (
               <FormAlert tone="warning" title="This order cannot be timed yet">
                 No molds are set for{' '}
-                {forecast.untimed_sizes
+                {missingMolds
                   .map((size) => BLOCK_SIZES[size].label.toLowerCase())
                   .join(' or ')}
                 .{' '}
@@ -41,6 +45,19 @@ export function ForecastCard({ forecast }: { forecast: Forecast | null }) {
                 >
                   Add molds in Settings
                 </Link>
+              </FormAlert>
+            ) : null}
+            {incompletePlan.length > 0 ? (
+              <FormAlert
+                tone="warning"
+                title="The production plan is incomplete"
+              >
+                The saved runs do not cover the requested{' '}
+                {incompletePlan
+                  .map((size) => BLOCK_SIZES[size].label.toLowerCase())
+                  .join(' or ')}
+                . The completion time is unavailable until the plan is
+                corrected.
               </FormAlert>
             ) : null}
             <dl className="grid gap-4 sm:grid-cols-3">

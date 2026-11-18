@@ -2,10 +2,10 @@ name: Frontend
 
 on:
   pull_request:
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
+    paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
   push:
     branches: [main]
-    paths: ['frontend/**', '.github/workflows/frontend.yml']
+    paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
 
 permissions:
   contents: read
@@ -24,9 +24,18 @@ jobs:
           package_json_file: frontend/package.json
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: pnpm
           cache-dependency-path: frontend/pnpm-lock.yaml
       - run: pnpm install --frozen-lockfile
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: "0.11.31"
+          python-version: "3.12"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+      - run: uv sync --locked --project ../backend
       - run: pnpm check
+        env:
+          BLOCKCALC_TEST_PYTHON: ../backend/.venv/bin/python
       - run: pnpm build

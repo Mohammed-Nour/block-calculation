@@ -40,4 +40,24 @@ Issue #13. Run against the mock API (`VITE_API_MODE=mock`) in Chromium via Playw
 ## Still to do before release
 
 - Run the same list in desktop Firefox and one agreed phone browser and record versions (NFR08, #16).
-- Repeat against the real backend (`VITE_API_MODE=http`) once #9 and #12 land.
+- Repeat the HTTP workflow before release when the backend or UI changes.
+
+## PR #32 review verification, 18 November 2026
+
+Repeated with the real FastAPI backend and `VITE_API_MODE=http`, using an isolated local SQLite database. Browser: Google Chrome 158.0.8127.36, driven through Playwright, at 360 × 800 and 1280 × 800. Sample settings were configured through the local API; production staging was untouched by this browser check.
+
+| Check | 360 px | 1280 px |
+|---|---|---|
+| Tab navigation, skip link, keyboard mix selection, calculate, save, and plan | Pass | Pass |
+| Worked example: 691.20 RUB, 1632 hours, 54 runs | Pass | Pass |
+| Start dialog focuses safe cancellation, closes with Escape, and restores focus | Pass | Pass |
+| Backdated actual start; physical check required before readiness confirmation | Pass | Pass |
+| Collecting 51 of 50 ready gives a linked field error; collecting 6 succeeds | Pass | Pass |
+| Lost response after the server saves 6: retry sends the same key, amounts, and timestamp; only 6 are collected | Pass | Pass |
+| Legacy incomplete plan shows no completion time and explains the missing coverage | Pass | Pass |
+| Missing snapshot mix retains saved cost and explains unavailable mix details | Pass | Pass |
+| No horizontal page overflow or uncaught browser exceptions | Pass | Pass |
+
+The missing-settings response was also checked at 360 px: field-path errors list the required inputs and show no cost. The legacy warning checks used deliberately incomplete records in the isolated QA database. Automated regression coverage includes saved yields when changing mixes and legacy mock snapshots.
+
+After synchronizing Mohamad's merge `31a1143`, the HTTP workflow was repeated at both widths with a deliberately lost collection response. The retry succeeded without a duplicate collection. Four added regressions cover the full retry payload, a new payload after editing amounts, saved currency after a settings change, and the mock's clock tolerance without shortening curing. The integrated suites pass 79 backend tests and 75 frontend tests, including five real HTTP tests.

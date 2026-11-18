@@ -12,10 +12,10 @@ Each requirement and acceptance check from the [study](study.md) maps to the iss
 | FR11–FR14 Quantities, cost, breakdown, missing inputs | FE03 | #6, #7 | #8 | `api/mock/rules/materials.ts` |
 | FR15–FR17 Save estimate, keep prices, revisions | FE03 | #7 | #9 | `features/estimates` (revisions, price snapshot) |
 | FR18 Lock an active order | FE02 | #11 | #12 | `api/mock/rules/production.ts` (`isOrderLocked`) |
-| FR19–FR21 Completion forecast | FE04 | #11 | #8, #12 | `api/mock/rules/production.ts` |
+| FR19–FR21 Completion forecast | FE04 | #11 | #12 | `api/mock/rules/production.ts` |
 | FR22–FR24 Runs, readiness, delay | FE05 | #11 | #12 | `features/production` |
 | FR25–FR26 Collection | FE05 | #11 | #12 | `features/collection` |
-| FR27–FR28 Project list and summary | FE06 | #10 | #9 | route `/projects`, `/projects/$projectId` |
+| FR27–FR28 Project list and summary | FE06 | #10 | #9, #12 | route `/projects`, `/projects/$projectId` |
 | FR29 Cancel a project | FE05 | #10 | #12 | `features/projects` (cancel dialog) |
 | FR30 History | FE06 | #10 | #3, #12 | project summary history list |
 | FR31 Repeated events | FE06 | #20 | #12 | `api/mock` event keys |
@@ -52,3 +52,19 @@ Frontend tests are in `frontend/src/tests/api/` (`rules.test.ts`, `mock-client.t
 | AT10 Cancel with active and waiting runs | `mock-client.test.ts` |
 | AT11 Repeated event, conflicting edit | `mock-client.test.ts` |
 | AT12 Interrupted save, backup restore | Backend (#14, #15) |
+
+## Backend implementation and verification
+
+| Requirement or check | Backend implementation | Automated evidence |
+|---|---|---|
+| FR01–FR06, AT01 | `settings.py`, migrations | `test_settings.py` |
+| FR07–FR10, FR15–FR18, FR32, AT02, AT05 | `projects.py` | `test_projects.py`; active start-date lock in `test_production.py` |
+| FR11–FR14, AT03–AT04 | `calculation.py` | `test_calculation.py` |
+| FR19–FR24, AT06–AT08 | `production.py` | `test_production.py` |
+| FR27–FR28 Frontend summaries and full project detail | `production.py` (`/summaries`, `/production`); legacy project record and list in `projects.py` | `test_production.py`, `test_projects.py`, frontend HTTP integration tests |
+| FR25–FR26, AT09 | `production.py` | Collection bounds and concurrent collection tests |
+| FR29–FR31, AT10–AT11 | Production transactions and immutable audit events | Cancellation, replay, conflict, and rollback tests |
+| NFR04–NFR05, AT12 | Transactional migrations and `backup.py` | `test_operations.py`, deployment restore drill |
+| Frontend HTTP contract | `frontend/src/api/http.ts` | `frontend/src/tests/api/http-client.test.ts` against a real FastAPI process |
+
+Backend paths are under `backend/blockcalc/`. The schema snapshot is `docs/api/openapi.yaml`. Deployment and backup procedures are in [staging operations](../deployment/staging.md).
