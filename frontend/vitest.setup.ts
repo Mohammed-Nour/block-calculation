@@ -5,3 +5,13 @@ import { cleanup } from '@testing-library/react';
 afterEach(() => {
   cleanup();
 });
+
+// jsdom has no ResizeObserver; Radix primitives (radio group) measure with it.
+class ResizeObserverStub {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+if (!('ResizeObserver' in globalThis)) {
+  globalThis.ResizeObserver = ResizeObserverStub;
+}
