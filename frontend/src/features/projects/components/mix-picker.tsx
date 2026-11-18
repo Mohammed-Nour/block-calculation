@@ -1,3 +1,5 @@
+import type { Ref } from 'react';
+
 import type { Mix, MixId } from '@/api';
 import { Label, RadioGroup, RadioGroupItem } from '@/components/ui';
 import { cn } from '@/lib';
@@ -7,6 +9,7 @@ interface MixPickerProps {
   value: MixId | null;
   error?: string;
   onChange: (mix: MixId) => void;
+  groupRef?: Ref<HTMLDivElement>;
 }
 
 function yieldText(mix: Mix) {
@@ -16,7 +19,13 @@ function yieldText(mix: Mix) {
 }
 
 /** FR09: one of four mixes. Each card shows its §8.1 recipe and yields. */
-export function MixPicker({ mixes, value, error, onChange }: MixPickerProps) {
+export function MixPicker({
+  mixes,
+  value,
+  error,
+  onChange,
+  groupRef,
+}: MixPickerProps) {
   return (
     <fieldset
       className="grid gap-2"
@@ -27,6 +36,7 @@ export function MixPicker({ mixes, value, error, onChange }: MixPickerProps) {
         Required before the cost can be calculated.
       </p>
       <RadioGroup
+        ref={groupRef}
         value={value === null ? '' : String(value)}
         onValueChange={(next) => onChange(Number(next) as MixId)}
         className="grid gap-2 sm:grid-cols-2"
