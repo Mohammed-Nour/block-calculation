@@ -78,11 +78,11 @@ An update includes all draft fields and the last read `version`. Changing quanti
 | `BLOCKCALC_DB_PATH` | `backend/data/blockcalc.sqlite3` | SQLite database path. Relative overrides resolve from the server's working directory. |
 | `BLOCKCALC_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated frontend origins. Set it to an empty string for same-origin use. |
 
-The Settings API requires no credentials. CI runs on pull requests and on pushes to `main` and `ali/backend-foundation`. Run the checks locally with `pnpm check` and `pnpm build` from `frontend/` and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
+The private Settings API requires no credentials. Public deployment protects the frontend and API with a shared proxy login. CI runs on pull requests and on pushes to `main`. Run the checks locally with `pnpm check` and `pnpm build` from `frontend/` and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
 
 ## Deployment
 
-The [full application runbook](docs/deployment/release.md) covers the HTTP frontend, internal API, persistent data, backups, selected-snapshot restore, and rollback. The [release review](docs/deployment/release-review.md) records verification and the customer gates still required before production promotion. Existing backend-only staging is documented separately in [staging operations](docs/deployment/staging.md).
+The [full application runbook](docs/deployment/release.md) covers the HTTP frontend, internal API, persistent data, backups, selected-snapshot restore, and rollback. The [protected public preview runbook](docs/deployment/public-preview.md) adds a shared login and Tailscale Funnel access. The [release review](docs/deployment/release-review.md) records verification and the customer gates still required before production promotion. Existing backend-only staging is documented separately in [staging operations](docs/deployment/staging.md).
 
 ## How we work
 

@@ -1,6 +1,6 @@
 # Final engineering review — 19 November 2026
 
-The application is packaged and verified as a candidate for the agreed private host. Production promotion still requires the customer-facing checks below. No production database was migrated or replaced during preparation.
+The application is packaged and verified for the agreed host. The owner subsequently authorized a shared-login public preview through Tailscale Funnel. Production signoff still requires the customer-facing checks below. Deployment-specific image IDs, snapshot checksums, and cutover results are recorded with the installation.
 
 ## Reviewed baseline and scope
 
@@ -25,7 +25,15 @@ The candidate uses digest-pinned base images, locked Python and frontend depende
 | Failed restore           | Corrupt snapshot rejected; backend stayed stopped and the previous destination was preserved; restoring the valid snapshot recovered the stack                       |
 | Existing staging         | Backend-only staging remained on its verified release; health and the scheduled backup were checked separately                                                       |
 
-The container deployment workflow now rebuilds the candidate, runs the smoke checks, verifies backup/restore permissions, and checks routing after backend replacement. Feature-branch CI also runs the backend and frontend suites so this preparation can be reviewed without pushing to `main`.
+The container deployment workflow rebuilds the candidate, runs the smoke checks, verifies backup/restore permissions, and checks routing after backend replacement. Pull-request CI runs the backend and frontend suites; push triggers target `main` only.
+
+## PR #33 review follow-up and public preview
+
+Mohamad approved the initial deployment candidate and identified two nonblocking improvements. The workflows and README no longer retain a feature branch in their push triggers. The restore helper now streams the selected snapshot through an automatically removed temporary file, including when validation fails.
+
+The public profile serves `/blockcalc/` with a shared proxy login covering the UI, assets, API, and API documentation. Only the minimal health response is anonymous. The API stays internal and the frontend port stays on loopback. Frontend routes, assets, API requests, and generated API documentation retain the public path prefix. The password hash is mounted from outside the checkout; credentials and databases are excluded from the release archive.
+
+The public container profile passed the read-only smoke check and the same Chrome desktop/mobile-emulation workflow above, including a deep-link reload and the lost-response collection retry. Recovery checks exercise temporary-file cleanup on valid and corrupt snapshots. CI covers both the private root profile and the protected public profile. See [public preview operations](public-preview.md) for access, recovery, credential rotation, and narrow Funnel rollback.
 
 ## Packaged browser verification
 
@@ -52,4 +60,4 @@ The QA volumes and snapshots are test fixtures. They must not be imported into c
 | Backup and record-retention agreement | Record customer representative, schedule/timezone, retention, storage, and recovery owner in `docs/process/customer-questions.md` |
 | Cutover review                        | Confirm the target, image manifest/checksums, selected snapshot, and rollback point before production writes move                 |
 
-The [deployment runbook](release.md) provides the commands and the cutover/recovery order. The engineering candidate is ready for review and private-host staging. Production release is not signed off while these gates remain open.
+The [deployment runbook](release.md) provides the cutover/recovery order. The engineering candidate supports staging and the authorized protected preview. Production release is not signed off while these gates remain open.

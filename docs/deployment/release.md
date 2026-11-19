@@ -1,6 +1,6 @@
 # Full application deployment
 
-This candidate adds a production build of the frontend to the reviewed backend. It targets the agreed private staging host and keeps the existing backend staging installation available. It does not publish the application to the internet or mark the customer release complete.
+This candidate adds a production build of the frontend to the reviewed backend. The base profile provides private staging. The separately configured [protected public preview](public-preview.md) adds a shared login for internet access through Tailscale Funnel. Customer release checks remain open in #16.
 
 ## What runs
 
@@ -49,7 +49,7 @@ python3 smoke.py http://127.0.0.1:18096
 
 `deploy/backup.sh` creates a checked online snapshot in the installation's backup volume. Before production release, agree the time, timezone, retention, destination, and responsible operator in [customer questions](../process/customer-questions.md). The existing 03:00 staging job remains provisional and continues to protect its existing installation. At cutover, point the agreed job at `<deployment-root>/current/deploy/backup.sh` for the new installation. Verify a fresh snapshot after changing the job.
 
-For recovery, stop writes, retain a current backup, and use `restore.sh` with the selected snapshot. The helper validates integrity and foreign keys before replacing the destination. Verify `/health`, saved projects, estimates, production, and collection after restoring. Record which snapshot was selected and any records created after it; restoring an older snapshot requires an explicit decision about those records.
+For recovery, stop writes, retain a current backup, and use `restore.sh` with the selected snapshot. The helper validates integrity and foreign keys before replacing the destination. Its temporary uploaded copy is removed on success and on validation failure. The operator's selected source and intentional backups remain. Verify `/health`, saved projects, estimates, production, and collection after restoring. Record which snapshot was selected and any records created after it; restoring an older snapshot requires an explicit decision about those records.
 
 ## Rollback
 

@@ -19,6 +19,7 @@ export function getRouter() {
 
   const router = createRouter({
     routeTree,
+    basepath: import.meta.env.BASE_URL.replace(/\/$/, '') || '/',
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: 'intent',

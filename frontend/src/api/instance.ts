@@ -9,5 +9,7 @@ import { createMockApi } from '@/api/mock/mock-client';
  */
 export const api: BlockCalcApi =
   import.meta.env.VITE_API_MODE === 'http'
-    ? createHttpApi(import.meta.env.VITE_API_BASE_URL ?? '')
+    ? createHttpApi(
+        import.meta.env.VITE_API_BASE_URL || import.meta.env.BASE_URL,
+      )
     : createMockApi({ store: browserStore() });

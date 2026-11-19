@@ -11,7 +11,7 @@ on:
         ".github/workflows/deployment.yml",
       ]
   push:
-    branches: [main, ali/backend-foundation]
+    branches: [main]
     paths:
       [
         "frontend/**",
@@ -44,13 +44,54 @@ jobs:
         run: |
           docker compose -f deploy/compose.yaml exec -T backend python -m blockcalc.backup backup --output /backups/ci.sqlite3
           docker compose -f deploy/compose.yaml exec -T backend python -m blockcalc.backup restore --source /backups/ci.sqlite3 --output /backups/ci-restored.sqlite3
+          docker compose -f deploy/compose.yaml cp backend:/backups/ci.sqlite3 "$RUNNER_TEMP/ci.sqlite3"
+          ./deploy/restore.sh "$RUNNER_TEMP/ci.sqlite3"
+          docker compose -f deploy/compose.yaml exec -T backend python -c "from pathlib import Path; assert not list(Path('/backups').glob('restore-*.sqlite3'))"
+          printf 'invalid snapshot' > "$RUNNER_TEMP/corrupt.sqlite3"
+          if ./deploy/restore.sh "$RUNNER_TEMP/corrupt.sqlite3"; then
+            echo 'Corrupt restore unexpectedly succeeded' >&2
+            exit 1
+          fi
+          test "$(docker inspect -f '{{.State.Status}}' blockcalc-ci-backend-1)" = exited
+          docker compose -f deploy/compose.yaml run --rm --no-deps -T backend python -c "from pathlib import Path; assert not list(Path('/backups').glob('restore-*.sqlite3'))"
+          ./deploy/restore.sh "$RUNNER_TEMP/ci.sqlite3"
       - name: Verify routing after backend replacement
         run: |
           docker compose -f deploy/compose.yaml up -d --no-build --force-recreate --wait --wait-timeout 120 backend
           python3 deploy/smoke.py http://127.0.0.1:18096
+      - name: Create isolated public-login fixtures
+        run: |
+          python3 - <<'PY'
+          import json, os, subprocess
+          from pathlib import Path
+          root = Path(os.environ['RUNNER_TEMP'])
+          credentials = {'username': 'ci-fixture', 'password': 'ci-only-fixture-password'}
+          hashed = subprocess.check_output(['openssl', 'passwd', '-6', '-stdin'], input=credentials['password'] + '\n', text=True).strip()
+          (root / 'blockcalc.htpasswd').write_text(credentials['username'] + ':' + hashed + '\n')
+          (root / 'blockcalc-login.json').write_text(json.dumps(credentials))
+          PY
+      - name: Verify public path and login protection
+        env:
+          BLOCKCALC_RELEASE: ci-public
+          BLOCKCALC_PROJECT_NAME: blockcalc-ci-public
+          BLOCKCALC_WEB_PORT: "18097"
+          BLOCKCALC_AUTH_FILE: ${{ runner.temp }}/blockcalc.htpasswd
+        run: |
+          docker compose -f deploy/compose.yaml -f deploy/compose.public.yaml build
+          docker compose -f deploy/compose.yaml -f deploy/compose.public.yaml up -d --no-build --wait --wait-timeout 120
+          python3 deploy/smoke.py http://127.0.0.1:18097/blockcalc/ --credentials-file "$RUNNER_TEMP/blockcalc-login.json"
+          export COMPOSE_FILE="$GITHUB_WORKSPACE/deploy/compose.yaml:$GITHUB_WORKSPACE/deploy/compose.public.yaml"
+          docker compose exec -T backend python -m blockcalc.backup backup --output /backups/public-ci.sqlite3
+          docker compose cp backend:/backups/public-ci.sqlite3 "$RUNNER_TEMP/public-ci.sqlite3"
+          ./deploy/restore.sh "$RUNNER_TEMP/public-ci.sqlite3"
+          python3 deploy/smoke.py http://127.0.0.1:18097/blockcalc/ --credentials-file "$RUNNER_TEMP/blockcalc-login.json"
       - name: Show container logs
         if: failure()
         run: docker compose -f deploy/compose.yaml logs --tail=100
       - name: Remove isolated CI containers and test volumes
         if: always()
-        run: docker compose -f deploy/compose.yaml down --volumes
+        env:
+          BLOCKCALC_AUTH_FILE: ${{ runner.temp }}/blockcalc.htpasswd
+        run: |
+          docker compose -f deploy/compose.yaml down --volumes
+          BLOCKCALC_RELEASE=ci-public docker compose -p blockcalc-ci-public -f deploy/compose.yaml -f deploy/compose.public.yaml down --volumes
