@@ -56,10 +56,25 @@ The QA volumes and snapshots are test fixtures. They must not be imported into c
 
 | Gate                                  | Status and owner                                                                                                                  |
 | ------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
-| Desktop Firefox workflow              | Repeat on a working desktop Firefox installation; Mohamad / #16                                                                   |
+| Desktop Firefox workflow              | Automated public workflow passed in Firefox 153.0 using an isolated Playwright browser container; results recorded under #16      |
 | Agreed physical phone browser         | Agree browser/version and record a full workflow; Mohamad and customer / #16                                                      |
 | Five-user BO04 walkthrough            | Record actual results in `docs/ux/usability-results.md`; Mohamad and customer / #16                                               |
 | Backup and record-retention agreement | Record customer representative, schedule/timezone, retention, storage, and recovery owner in `docs/process/customer-questions.md` |
 | Cutover review                        | Confirm the target, image manifest/checksums, selected snapshot, and rollback point before production writes move                 |
 
 The [deployment runbook](release.md) provides the cutover/recovery order. The engineering candidate supports staging and the authorized protected preview. Production release is not signed off while these gates remain open.
+
+## Public deployment audit — 19 November 2026
+
+The owner authorized functional testing on the protected public preview. Requests were sent through a public Funnel relay with normal TLS hostname verification, including browser traffic through a restricted local CONNECT proxy. Test projects used a unique `TEST PUBLIC AUDIT` prefix. The original shared Settings were saved and restored after each pass; a separately created non-test draft was preserved. Database snapshots were taken before testing and around deployment updates.
+
+The public API checks covered all four mixes (688.00, 691.20, 729.00, and 637.20 RUB), missing inputs, strict field validation, zero-price confirmation, optimistic locking, immutable revisions, confirmed repricing/currency, forecast boundaries, saved mold capacity, readiness timing and physical confirmation, order locks, cancellation, event replay, and concurrent collection. Six-block replay counted once; competing collections could not exceed ready stock. Unplanned forecasts use current mold counts, while saved plans retain their capacities.
+
+The public browser runs exercised Settings, all mixes, save/reload, revisions, repricing confirmation, production planning, backdated simulated readiness, invalid/valid collection, loss of a successful collection response and retry, cancellation, filters, responsive layouts, and recovery pages. Engines included Chrome 158.0.8127.36 at desktop width and Pixel 7 touch emulation, WebKit 26.5 at desktop width, and Firefox 153.0 at desktop width. Firefox required an isolated browser container because the desktop sandbox could not initialize its graphics framebuffer. These are automated compatibility checks, not a physical-device or five-user usability result.
+
+Two delivery/UX gaps were identified and corrected:
+
+- Static JavaScript was transferred uncompressed: 554,214 bytes, with a sampled download around 18–20 seconds. Asset-only gzip reduced that response to 179,475 bytes (68% smaller); the compressed sample took about 6.6 seconds. Compression is negotiated by the client, includes `Vary: Accept-Encoding`, and the deployment smoke check verifies that decompression reproduces the original asset exactly. Download times are samples and depend on the network and Funnel.
+- A missing project fell through to the generic unexpected-error page without a main landmark. Known API 404s now use the existing not-found page, error responses have a main landmark, and two router regression tests verify the message and return-home recovery for 404 and unexpected failures. The frontend suite now contains 77 tests.
+
+Browser probes were corrected where they assumed the error page had a main landmark before that fix, or assumed an overflowing forecast was an object rather than the documented null value. Those probe failures were distinguished from business-rule failures. Detailed before/after checks, release/image identifiers, test-data cleanup, and public recovery rechecks are retained with the operator's audit evidence and summarized on PR #33 / issue #16. Physical-phone acceptance, BO04 participants, and customer operations agreements remain open.
