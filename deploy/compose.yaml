@@ -5,7 +5,6 @@ services:
     image: blockcalc-backend:${BLOCKCALC_RELEASE:?Set BLOCKCALC_RELEASE to the reviewed commit}
     build:
       context: ../backend
-      network: host
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]
@@ -27,7 +26,6 @@ services:
     image: blockcalc-frontend:${BLOCKCALC_RELEASE:?Set BLOCKCALC_RELEASE to the reviewed commit}
     build:
       context: ../frontend
-      network: host
     restart: unless-stopped
     read_only: true
     cap_drop: [ALL]

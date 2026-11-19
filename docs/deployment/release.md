@@ -26,6 +26,8 @@ python3 deploy/smoke.py http://127.0.0.1:18096
 
 When operating from `deploy/`, Compose automatically reads its `.env`. Pin the image tags before starting; do not rebuild a reviewed image during promotion. To transfer images without a registry, use `docker image save` on the prepared images and `docker image load` on the host. Verify the release manifest and checksums before starting them. The source archive must include `docs/api/openapi.yaml` for the smoke check.
 
+Builds use the default Docker network, including in CI. If a trusted private builder cannot reach package registries through its bridge network, build the two images individually with `docker build --network host` and the reviewed commit tags. This is a builder-specific fallback; it does not change container networking or expose the API. The prepared image bundle avoids rebuilding on the deployment host.
+
 The candidate uses its own `blockcalc-candidate_data` and `blockcalc-candidate_backups` volumes. It starts with unconfigured inputs. Enter measured customer settings during onboarding. Test fixtures belong in isolated QA volumes.
 
 ## Preserve existing records at cutover
