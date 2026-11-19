@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main, ali/backend-foundation]
+    branches: [main]
 
 permissions:
   contents: read
