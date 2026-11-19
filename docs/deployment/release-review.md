@@ -35,6 +35,8 @@ The public profile serves `/blockcalc/` with a shared proxy login covering the U
 
 The public container profile passed the read-only smoke check and the same Chrome desktop/mobile-emulation workflow above, including a deep-link reload and the lost-response collection retry. Recovery checks exercise temporary-file cleanup on valid and corrupt snapshots. CI covers both the private root profile and the protected public profile. See [public preview operations](public-preview.md) for access, recovery, credential rotation, and narrow Funnel rollback.
 
+Mohamad's second review approved the shared-login profile. The optional follow-up adds a public-only per-client request budget covering failed logins and every protected route, while exempting health probes. Checks cover IPv4/IPv6 client isolation, a changing earlier forwarded address, 429 responses, and recovery; the private profile remains unthrottled. Rebuilding from the actual merge commit is documented as a future promotion step, without merging or pushing to `main`. The [manual browser checklist](../frontend/manual-browser-checks.md) gives Firefox and physical-phone steps and a result template; it does not claim either outstanding check has passed.
+
 ## Packaged browser verification
 
 The exact built frontend and backend were tested together, using isolated local QA volumes. This was a production bundle served by NGINX, not the Vite development server or browser mock.
