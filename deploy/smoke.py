@@ -2,6 +2,7 @@
 
 import argparse
 import base64
+import gzip
 import json
 import re
 import time
@@ -43,8 +44,10 @@ def main() -> None:
         data: bytes | None = None,
         authenticated: bool = True,
         invalid_credentials: bool = False,
+        accept_encoding: str = "identity",
     ):
         headers = {"Content-Type": "application/json"} if data else {}
+        headers["Accept-Encoding"] = accept_encoding
         if authenticated and authorization:
             headers["Authorization"] = authorization
         if invalid_credentials:
@@ -102,8 +105,16 @@ def main() -> None:
     )
     if credentials:
         assert get(asset_path[len(base_path) :], authenticated=False)[0] == 401
-    status, headers, _ = get(asset_path[len(base_path) :])
+    status, headers, script = get(asset_path[len(base_path) :])
     assert status == 200 and "immutable" in headers.get("Cache-Control", "")
+    status, headers, compressed = get(
+        asset_path[len(base_path) :], accept_encoding="gzip"
+    )
+    assert status == 200 and headers.get("Content-Encoding") == "gzip", (
+        "Built JavaScript must be compressed for public delivery"
+    )
+    assert "accept-encoding" in headers.get("Vary", "").lower()
+    assert gzip.decompress(compressed) == script, "Compressed asset differs"
     assert get("/assets/missing-file.js")[0] == 404, "Missing asset returned the SPA"
 
     status, _, body = get("/api/settings")
