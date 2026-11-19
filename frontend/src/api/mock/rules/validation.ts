@@ -91,10 +91,7 @@ export function validateSettings(
       const value = mix[field];
       if (value !== null && !(isCount(value) && value > 0)) {
         issues.push(
-          issue(
-            ['mix_yields', index, field],
-            'Enter a whole number greater than 0',
-          ),
+          issue(['mix_yields', index, field], 'Enter a whole number above 0'),
         );
       }
     }

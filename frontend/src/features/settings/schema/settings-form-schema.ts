@@ -30,7 +30,7 @@ const yieldCount = z
   .string()
   .trim()
   .refine((value) => value === '' || /^[1-9]\d*$/.test(value), {
-    message: 'Enter a whole number greater than 0',
+    message: 'Enter a whole number above 0',
   });
 
 export const settingsFormSchema = z.object({

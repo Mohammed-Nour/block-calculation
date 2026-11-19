@@ -26,17 +26,20 @@ export function MixYieldsFieldset({
   onChange,
 }: MixYieldsFieldsetProps) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2">
+    <div className="grid gap-4 lg:grid-cols-2">
       {mixes.map((mix, index) => {
         const value = values[index];
         if (!value) return null;
         return (
-          <fieldset key={mix.id} className="grid gap-3 rounded-md border p-4">
+          <fieldset
+            key={mix.id}
+            className="grid content-start gap-3 rounded-md border p-4"
+          >
             <legend className="px-1 font-medium">{mix.name}</legend>
             <p className="text-sm text-muted-foreground">
               {recipeSummary(mix)}
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid gap-3 sm:grid-cols-2">
               <FormField
                 id={`mix-${mix.id}-full`}
                 label="Full yield"
