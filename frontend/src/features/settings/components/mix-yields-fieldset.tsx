@@ -39,7 +39,7 @@ export function MixYieldsFieldset({
             <p className="text-sm text-muted-foreground">
               {recipeSummary(mix)}
             </p>
-            <div className="grid gap-3 sm:grid-cols-2">
+            <div className="grid gap-3">
               <FormField
                 id={`mix-${mix.id}-full`}
                 label="Full yield"
