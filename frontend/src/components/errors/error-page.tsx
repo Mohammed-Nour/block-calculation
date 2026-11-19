@@ -2,6 +2,8 @@ import type { ErrorComponentProps } from '@tanstack/react-router';
 import { Link } from '@tanstack/react-router';
 import { Home, TriangleAlert } from 'lucide-react';
 
+import { isApiError } from '@/api/errors';
+import { NotFoundPage } from '@/components/errors/not-found-page';
 import { Button } from '@/components/ui';
 
 /**
@@ -9,8 +11,16 @@ import { Button } from '@/components/ui';
  * Shows the raw error message in development only.
  */
 export function ErrorPage({ error }: ErrorComponentProps) {
+  if (isApiError(error) && error.status === 404) {
+    return (
+      <main id="main" tabIndex={-1}>
+        <NotFoundPage />
+      </main>
+    );
+  }
+
   return (
-    <div>
+    <main id="main" tabIndex={-1}>
       <div className="bl-container">
         <div
           role="alert"
@@ -38,6 +48,6 @@ export function ErrorPage({ error }: ErrorComponentProps) {
           </Button>
         </div>
       </div>
-    </div>
+    </main>
   );
 }

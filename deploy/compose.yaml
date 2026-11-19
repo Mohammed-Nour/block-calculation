@@ -1,0 +1,47 @@
+name: ${BLOCKCALC_PROJECT_NAME:-blockcalc-candidate}
+
+services:
+  backend:
+    image: blockcalc-backend:${BLOCKCALC_RELEASE:?Set BLOCKCALC_RELEASE to the reviewed commit}
+    build:
+      context: ../backend
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    environment:
+      BLOCKCALC_DB_PATH: /data/blockcalc.sqlite3
+      BLOCKCALC_CORS_ORIGINS: ""
+    volumes:
+      - data:/data
+      - backups:/backups
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  frontend:
+    image: blockcalc-frontend:${BLOCKCALC_RELEASE:?Set BLOCKCALC_RELEASE to the reviewed commit}
+    build:
+      context: ../frontend
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    tmpfs: [/tmp]
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "${BLOCKCALC_WEB_BIND_ADDRESS:-127.0.0.1}:${BLOCKCALC_WEB_PORT:-18096}:8080"
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+volumes:
+  data:
+  backups:

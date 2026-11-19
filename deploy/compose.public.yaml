@@ -1,0 +1,31 @@
+# Public Funnel profile. Apply after compose.yaml; the password hash stays outside Git.
+services:
+  backend:
+    command:
+      - uvicorn
+      - blockcalc.app:app
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --root-path
+      - /blockcalc
+      - --forwarded-allow-ips
+      - "*"
+  frontend:
+    build:
+      args:
+        VITE_BASE_PATH: /blockcalc/
+    volumes:
+      - type: bind
+        source: ./auth.conf
+        target: /etc/nginx/blockcalc-auth.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${BLOCKCALC_AUTH_FILE:?Set BLOCKCALC_AUTH_FILE to an external htpasswd file}
+        target: /etc/nginx/blockcalc.htpasswd
+        read_only: true
+        bind:
+          create_host_path: false

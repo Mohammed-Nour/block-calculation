@@ -40,6 +40,7 @@ Issue #13. Run against the mock API (`VITE_API_MODE=mock`) in Chromium via Playw
 ## Still to do before release
 
 - Run the same list in desktop Firefox and one agreed phone browser and record versions (NFR08, #16).
+- Follow the [manual Firefox and physical-phone checklist](manual-browser-checks.md) for setup, expected values, and evidence.
 - Repeat the HTTP workflow before release when the backend or UI changes.
 
 ## PR #32 review verification, 18 November 2026

@@ -1,0 +1,10 @@
+node_modules
+dist
+.env*
+*.htpasswd
+.htpasswd
+secrets
+.git
+.tanstack
+.playwright-mcp
+*.log
