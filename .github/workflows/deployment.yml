@@ -1,0 +1,56 @@
+name: Deployment candidate
+
+on:
+  pull_request:
+    paths:
+      [
+        "frontend/**",
+        "backend/**",
+        "deploy/**",
+        "docs/api/openapi.yaml",
+        ".github/workflows/deployment.yml",
+      ]
+  push:
+    branches: [main, ali/backend-foundation]
+    paths:
+      [
+        "frontend/**",
+        "backend/**",
+        "deploy/**",
+        "docs/api/openapi.yaml",
+        ".github/workflows/deployment.yml",
+      ]
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Container deployment smoke
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      BLOCKCALC_RELEASE: ci
+      BLOCKCALC_PROJECT_NAME: blockcalc-ci
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Build the locked backend and HTTP frontend
+        run: docker compose -f deploy/compose.yaml build
+      - name: Start the isolated candidate
+        run: docker compose -f deploy/compose.yaml up -d --no-build --wait --wait-timeout 120
+      - name: Check routing and the real API
+        run: python3 deploy/smoke.py http://127.0.0.1:18096
+      - name: Verify backup and restore permissions
+        run: |
+          docker compose -f deploy/compose.yaml exec -T backend python -m blockcalc.backup backup --output /backups/ci.sqlite3
+          docker compose -f deploy/compose.yaml exec -T backend python -m blockcalc.backup restore --source /backups/ci.sqlite3 --output /backups/ci-restored.sqlite3
+      - name: Verify routing after backend replacement
+        run: |
+          docker compose -f deploy/compose.yaml up -d --no-build --force-recreate --wait --wait-timeout 120 backend
+          python3 deploy/smoke.py http://127.0.0.1:18096
+      - name: Show container logs
+        if: failure()
+        run: docker compose -f deploy/compose.yaml logs --tail=100
+      - name: Remove isolated CI containers and test volumes
+        if: always()
+        run: docker compose -f deploy/compose.yaml down --volumes

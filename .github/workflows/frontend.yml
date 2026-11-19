@@ -4,7 +4,7 @@ on:
   pull_request:
     paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
   push:
-    branches: [main]
+    branches: [main, ali/backend-foundation]
     paths: ["frontend/**", "backend/**", ".github/workflows/frontend.yml"]
 
 permissions:
