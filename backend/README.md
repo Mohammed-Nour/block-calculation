@@ -26,3 +26,5 @@ uv run --locked python -m blockcalc.export_openapi ../docs/api/openapi.yaml --ch
 From `frontend/`, run `BLOCKCALC_TEST_PYTHON=../backend/.venv/bin/python pnpm check` and `pnpm build`. The HTTP integration tests start an isolated FastAPI process and database and exercise the frontend's real HTTP client. Frontend CI installs both runtimes and runs those tests.
 
 See the [API contract](../docs/api/README.md) for request and response details, the [generated schema](../docs/api/openapi.yaml), and [staging operations](../docs/deployment/staging.md) for deployment, daily backups, restoration, and rollback.
+
+The [full application deployment](../docs/deployment/release.md) adds the HTTP frontend and a same-origin proxy while keeping this service internal. It uses separate candidate volumes and does not replace the existing backend-only staging installation during preparation.

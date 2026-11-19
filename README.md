@@ -11,6 +11,7 @@ The project study in [`docs/requirements/`](docs/requirements/study.md) is the s
 | [`frontend/`](frontend/) | React + TanStack Router single-page app | Mohamad Nour |
 | [`backend/`](backend/) | API and database (see [API contract](docs/api/)) | Ali Hamdan |
 | [`docs/`](docs/) | Requirements, architecture, API contract, UX and process documents | Both |
+| [`deploy/`](deploy/) | Full application containers, smoke checks, backup, and restore | Both |
 
 ## Team
 
@@ -68,7 +69,7 @@ Preview with `{ "version": 1 }`, using the project's current version. Save with 
 
 The first estimate uses current settings. Subsequent revisions reuse the last saved settings, including prices, currency, recipes, yields, and conversion factors. To refresh those inputs, send both `use_current_prices: true` and `confirm_recalculation: true` when previewing and saving. Each revision retains its order, settings, conversion constants, and calculated results.
 
-An update includes all draft fields and the last read `version`. Changing quantities or mix returns the project to Draft, clears its current estimate, and cancels waiting runs. The previous estimate remains in revision history. Quantities and mix are locked after production starts. The project list defaults to 50 records, supports up to 100 per request, and returns newest projects first.
+An update includes all draft fields and the last read `version`. Changing quantities or mix returns the project to Draft, clears its current estimate, and cancels waiting runs. The previous estimate remains in revision history. Quantities, mix, and requested start time are locked after production starts. The project list defaults to 50 records, supports up to 100 per request, and returns newest projects first.
 
 ## Environment
 
@@ -77,7 +78,11 @@ An update includes all draft fields and the last read `version`. Changing quanti
 | `BLOCKCALC_DB_PATH` | `backend/data/blockcalc.sqlite3` | SQLite database path. Relative overrides resolve from the server's working directory. |
 | `BLOCKCALC_CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | Comma-separated frontend origins. Set it to an empty string for same-origin use. |
 
-The Settings API requires no credentials. CI runs on pull requests and on pushes to `main`. Run the checks locally with `pnpm check` and `pnpm build` from `frontend/` and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
+The private Settings API requires no credentials. Public deployment protects the frontend and API with a shared proxy login. CI runs on pull requests and on pushes to `main`. Run the checks locally with `pnpm check` and `pnpm build` from `frontend/` and `uv run --locked python -m unittest discover -s tests -v` from `backend/`.
+
+## Deployment
+
+The [full application runbook](docs/deployment/release.md) covers the HTTP frontend, internal API, persistent data, backups, selected-snapshot restore, and rollback. The [protected public preview runbook](docs/deployment/public-preview.md) adds a shared login and Tailscale Funnel access. The [release review](docs/deployment/release-review.md) records verification and the customer gates still required before production promotion. Existing backend-only staging is documented separately in [staging operations](docs/deployment/staging.md).
 
 ## How we work
 

@@ -9,6 +9,7 @@ import tsconfigPaths from 'vite-tsconfig-paths';
 // no server runtime here. The router plugin generates `src/routeTree.gen.ts`
 // and splits each route into its own chunk.
 export default defineConfig(({ mode }) => ({
+  base: process.env.VITE_BASE_PATH || '/',
   plugins: [
     ...(mode === 'development' ? [devtools()] : []),
     tsconfigPaths({ projects: ['./tsconfig.json'] }),
